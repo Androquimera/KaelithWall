@@ -464,7 +464,7 @@ namespace KaelithWall
         void AlternarPausa()
         {
             cfg.Pausado = !cfg.Pausado;
-            cfg.Salvar();
+            if (!teste) cfg.Salvar();
             Atualizar();
         }
 
@@ -472,7 +472,7 @@ namespace KaelithWall
         {
             if (cfg.Aleatorio == aleatorio) return;
             cfg.Aleatorio = aleatorio;
-            cfg.Salvar();
+            if (!teste) cfg.Salvar();
             Varrer();   // reordena mantendo a imagem atual como ponto de partida
             Atualizar();
         }
