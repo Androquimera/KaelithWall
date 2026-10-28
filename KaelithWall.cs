@@ -1,10 +1,7 @@
-// KaelithWall -- trocador de papel de parede leve.
+﻿// KaelithWall -- trocador de papel de parede leve.
 //
-// Principio de projeto: o app NUNCA decodifica, escala ou grava imagem.
-// Ele so entrega o caminho do arquivo original ao Windows
-// (SystemParametersInfo/SPI_SETDESKWALLPAPER). Quem decodifica e escala e o
-// proprio Windows, no processo dele, com cache. E por isso que nao travar e
-// de graca: o custo de CPU do KaelithWall e praticamente zero entre trocas.
+// Prepara um BMP completo antes de pedir ao Windows a troca do wallpaper.
+// A imagem anterior permanece aplicada durante a preparacao.
 //
 // Compila com o csc.exe do .NET Framework 4 que ja vem no Windows -- sem SDK,
 // sem pacote, sem dependencia. Ver compilar.sh.
@@ -294,7 +291,7 @@ namespace KaelithWall
 
             string dica = "KaelithWall" + (cfg.Pausado ? " (pausado)" : "");
             if (!string.IsNullOrEmpty(nome)) dica += "\n" + Path.GetFileName(nome);
-            if (dica.Length > 127) dica = dica.Substring(0, 127);
+            if (dica.Length > 63) dica = dica.Substring(0, 63);
             icone.Text = dica;
 
             // O relogio so corre quando ha mais de uma imagem e nao esta pausado.
@@ -406,9 +403,7 @@ namespace KaelithWall
             string caminho = ArquivoAtual();
             if (string.IsNullOrEmpty(caminho)) return;
 
-            cfg.Atual = caminho;
-            if (teste) return;
-            cfg.Salvar();
+            if (teste) { cfg.Atual = caminho; return; }
 
             // A troca sai da linha principal: num JPEG grande o Windows pode
             // levar algumas centenas de milissegundos recodificando, e o menu
@@ -417,7 +412,7 @@ namespace KaelithWall
             int ajuste = cfg.Ajuste;
             ThreadPool.QueueUserWorkItem(delegate
             {
-                try { Definir(caminho, ajuste); }
+                try { Definir(caminho, ajuste); cfg.Atual = caminho; cfg.Salvar(); }
                 catch (Exception e) { Avisar("(erro ao aplicar: " + e.Message + ")"); }
                 finally { Interlocked.Exchange(ref trocando, 0); }
             });
@@ -425,6 +420,27 @@ namespace KaelithWall
 
         static void Definir(string caminho, int ajuste)
         {
+            // Dois slots: nunca sobrescrever o arquivo que o Windows esta exibindo.
+            string dir = Path.Combine(Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData), "KaelithWall");
+            Directory.CreateDirectory(dir);
+            string anterior;
+            using (RegistryKey desktop = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop"))
+                anterior = desktop == null ? "" : (string)desktop.GetValue("Wallpaper", "");
+            string primeiro = Path.Combine(dir, "wallpaper-0.bmp");
+            string pronto = string.Equals(anterior, primeiro, StringComparison.OrdinalIgnoreCase)
+                ? Path.Combine(dir, "wallpaper-1.bmp") : primeiro;
+            using (Image imagem = Image.FromFile(caminho))
+            using (Bitmap bmp = new Bitmap(imagem.Width, imagem.Height,
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb))
+            {
+                using (Graphics g = Graphics.FromImage(bmp))
+                {
+                    g.Clear(Color.Black);
+                    g.DrawImageUnscaled(imagem, 0, 0);
+                }
+                bmp.Save(pronto, System.Drawing.Imaging.ImageFormat.Bmp);
+            }
             using (RegistryKey k = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop", true))
             {
                 if (k != null)
@@ -433,9 +449,10 @@ namespace KaelithWall
                     k.SetValue("TileWallpaper", "0", RegistryValueKind.String);
                 }
             }
-            Nativo.SystemParametersInfoW(
-                Nativo.SPI_SETDESKWALLPAPER, 0, caminho,
-                Nativo.SPIF_UPDATEINIFILE | Nativo.SPIF_SENDCHANGE);
+            if (!Nativo.SystemParametersInfoW(
+                Nativo.SPI_SETDESKWALLPAPER, 0, pronto,
+                Nativo.SPIF_UPDATEINIFILE | Nativo.SPIF_SENDCHANGE))
+                throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         }
 
         void Avisar(string mensagem)

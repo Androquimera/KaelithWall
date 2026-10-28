@@ -37,55 +37,14 @@ Formatos: JPG, JPEG, JFIF, PNG, BMP, GIF, TIF, TIFF e DIB.
 
 ---
 
-## Por que ele é leve
+## Como troca as imagens
 
-Essa é a ideia inteira do projeto, e cabe em uma frase:
-
-> **O KaelithWall nunca toca em pixel nenhum.**
-
-Um trocador de papel de parede parece exigir trabalho de imagem: abrir o
-arquivo, decodificar, redimensionar para a tela, desenhar. É aí que esses
-programas gastam processador e memória, e é por isso que costumam engasgar
-quando a pasta tem fotos grandes.
-
-Só que o Windows **já sabe fazer isso**, e faz melhor: tem o código otimizado,
-roda dentro do `explorer.exe` e guarda o resultado em cache. Então o
-KaelithWall não compete com ele. Ele entrega o caminho do arquivo original
-através de uma única chamada do sistema, `SystemParametersInfo` com
-`SPI_SETDESKWALLPAPER`, e sai da frente.
-
-O efeito prático:
-
-| | processo do KaelithWall | explorer.exe | total |
-|---|---|---|---|
-| **CPU**, trocando a cada 10 s | 0,02% | 7,66% | **7,67% de um núcleo** |
-| **RAM** | 25,7 MB | — | — |
-
-Medido numa pasta real de 185 imagens somando 1,1 GB, no Windows 10. Para
-comparar, o `explorer.exe` sozinho, sem nada trocando papel de parede, já gasta
-0,59%.
-
-Nenhuma biblioteca de imagem é carregada. Nenhum arquivo intermediário é
-gravado em disco. A imagem que vai para a tela é o seu arquivo original, do
-jeito que está — nada é recomprimido nem reduzido.
-
-### O outro lado da moeda
-
-A troca em si passa a custar tempo do `explorer`: medido, **1.314 ms** no
-arquivo mais pesado que testei, um PNG de 83 MB, e **menos de 100 ms** nos
-JPEGs comuns. Isso aparece como o papel de parede levando um instante a mais
-para surgir quando a imagem é enorme.
-
-Por isso a troca sai de uma thread separada: o menu da bandeja responde na
-hora, mesmo enquanto o Windows ainda está processando a imagem anterior.
-
-### E o resto do tempo?
-
-Zero. Não existe laço nenhum rodando, nem verificação periódica. O programa
-dorme na fila de mensagens do Windows e só acorda quando o temporizador
-dispara ou quando você clica. A diferença entre *esperar* e *ficar conferindo
-se já é hora* é a diferença entre 0,02% e vários por cento de processador —
-para sempre, em segundo plano, enquanto o computador estiver ligado.
+A próxima imagem é decodificada e gravada em um BMP completo numa thread
+separada antes da troca. O wallpaper anterior continua aplicado durante essa
+preparação. Arquivos ilegíveis são rejeitados antes de alterar o wallpaper.
+Dois arquivos de cache em `%LOCALAPPDATA%\KaelithWall` evitam sobrescrever
+a imagem aplicada. Isso usa memória e disco durante a troca; as medições de
+consumo da implementação anterior precisam ser refeitas.
 
 ---
 
@@ -163,8 +122,7 @@ Eu escrevo esses programas sozinho, e qualquer ajuda faz diferença real aqui.
 Se o KaelithWall te poupou tempo ou irritação, e você puder e quiser
 contribuir:
 
-<!-- Preencha com a sua chave antes de publicar -->
-**Pix:** `SUA_CHAVE_PIX_AQUI`
+**Pix:** `4bb64518-21fb-4b72-b587-ea363ab38aa2`
 
 Se não puder, tudo bem — sério. Nesse caso ajuda do mesmo jeito:
 
