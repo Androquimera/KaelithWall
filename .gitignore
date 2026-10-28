@@ -1,0 +1,7 @@
+# Gerados pelo compilar.sh
+*.exe
+autoteste.txt
+
+# Gerados pelo fazer_ico.py a partir de logo.webp
+*.ico
+previa_icone.png
