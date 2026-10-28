@@ -439,15 +439,24 @@ namespace KaelithWall
             string pronto = string.Equals(anterior, primeiro, StringComparison.OrdinalIgnoreCase)
                 ? Path.Combine(dir, "wallpaper-1.bmp") : primeiro;
             using (Image imagem = Image.FromFile(caminho))
-            using (Bitmap bmp = new Bitmap(imagem.Width, imagem.Height,
-                System.Drawing.Imaging.PixelFormat.Format24bppRgb))
             {
-                using (Graphics g = Graphics.FromImage(bmp))
+                const int tagOrientacao = 0x0112;
+                if (Array.IndexOf(imagem.PropertyIdList, tagOrientacao) >= 0)
                 {
-                    g.Clear(Color.Black);
-                    g.DrawImageUnscaled(imagem, 0, 0);
+                    byte[] valor = imagem.GetPropertyItem(tagOrientacao).Value;
+                    if (valor.Length >= 2)
+                        imagem.RotateFlip(RotacaoExif(BitConverter.ToUInt16(valor, 0)));
                 }
-                bmp.Save(pronto, System.Drawing.Imaging.ImageFormat.Bmp);
+                using (Bitmap bmp = new Bitmap(imagem.Width, imagem.Height,
+                    System.Drawing.Imaging.PixelFormat.Format24bppRgb))
+                {
+                    using (Graphics g = Graphics.FromImage(bmp))
+                    {
+                        g.Clear(Color.Black);
+                        g.DrawImageUnscaled(imagem, 0, 0);
+                    }
+                    bmp.Save(pronto, System.Drawing.Imaging.ImageFormat.Bmp);
+                }
             }
             using (RegistryKey k = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop", true))
             {
@@ -461,6 +470,21 @@ namespace KaelithWall
                 Nativo.SPI_SETDESKWALLPAPER, 0, pronto,
                 Nativo.SPIF_UPDATEINIFILE | Nativo.SPIF_SENDCHANGE))
                 throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        }
+
+        static RotateFlipType RotacaoExif(int orientacao)
+        {
+            switch (orientacao)
+            {
+                case 2: return RotateFlipType.RotateNoneFlipX;
+                case 3: return RotateFlipType.Rotate180FlipNone;
+                case 4: return RotateFlipType.Rotate180FlipX;
+                case 5: return RotateFlipType.Rotate90FlipX;
+                case 6: return RotateFlipType.Rotate90FlipNone;
+                case 7: return RotateFlipType.Rotate270FlipX;
+                case 8: return RotateFlipType.Rotate270FlipNone;
+                default: return RotateFlipType.RotateNoneFlipNone;
+            }
         }
 
         void Avisar(string mensagem)
@@ -599,6 +623,10 @@ namespace KaelithWall
             // Quantas imagens o menu de extensoes aceita.
             checar(Suportado("x.JPG") && Suportado("x.png") && !Suportado("x.txt"),
                    "filtro de extensao aceita imagem e recusa o resto");
+            checar(RotacaoExif(1) == RotateFlipType.RotateNoneFlipNone &&
+                   RotacaoExif(6) == RotateFlipType.Rotate90FlipNone &&
+                   RotacaoExif(8) == RotateFlipType.Rotate270FlipNone,
+                   "orientacao EXIF vira a rotacao correta");
 
             r.AppendLine(falhas == 0
                 ? "RESULTADO: todos os testes passaram."
