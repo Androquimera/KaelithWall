@@ -26,28 +26,25 @@ Primeira versão.
 - `--autoteste`: 14 verificações da lógica real, sem tocar no papel de parede.
   Sai com 0 se passou, 2 se falhou.
 
+### Corrigido
+
+- O texto do ícone na bandeja agora respeita o limite de 63 caracteres do
+  Windows, inclusive com nomes de arquivo longos.
+- A próxima imagem é decodificada e preparada por completo em um BMP de cache
+  antes da troca. O wallpaper anterior permanece visível enquanto isso.
+- O estado da imagem atual só é salvo depois que o Windows confirma que aplicou
+  o novo wallpaper.
+- O autoteste não altera mais a configuração do usuário.
+
 ### Desempenho
 
-Medido em 27/10/2026, trocando a cada 10 segundos, numa pasta de 185 imagens
-(1,1 GB), no Windows 10:
+A preparação ocorre numa thread separada para manter o menu da bandeja
+responsivo. Dois arquivos BMP são alternados em `%LOCALAPPDATA%\KaelithWall`,
+evitando sobrescrever o arquivo que o Windows ainda está usando.
 
-| | processo próprio | explorer.exe | total |
-|---|---|---|---|
-| CPU | 0,02% | 7,66% | **7,67% de um núcleo** |
-| RAM | 25,7 MB | — | — |
-
-Base de comparação: com nada trocando papel de parede, o `explorer.exe`
-sozinho já gasta 0,59%.
-
-O custo é baixo porque o app nunca decodifica, escala ou grava imagem. Ele
-entrega o caminho do arquivo original ao Windows (`SPI_SETDESKWALLPAPER`) e
-quem faz o trabalho é o próprio Windows, com cache. Nenhuma biblioteca de
-imagem é carregada e nenhum arquivo intermediário é gravado em disco.
-
-`SPI_SETDESKWALLPAPER` leva 1.314 ms no arquivo mais pesado testado
-(PNG de 83,4 MB) e menos de 100 ms nos JPEGs comuns. Esse tempo é do
-`explorer`, e a troca sai de uma thread separada, então o menu da bandeja
-nunca congela.
+As medições anteriores pertenciam à implementação que entregava a imagem
+original diretamente ao Windows e não representam esta versão. CPU, memória e
+tempo de troca ainda precisam ser medidos novamente com o preparo em BMP.
 
 ### Testes
 
