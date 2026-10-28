@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -22,9 +23,9 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("KaelithWall")]
 [assembly: AssemblyProduct("KaelithWall")]
 [assembly: AssemblyDescription("Trocador leve de papel de parede para Windows")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyInformationalVersion("1.1.0")]
 
 namespace KaelithWall
 {
@@ -62,6 +63,25 @@ namespace KaelithWall
         public const int Preencher = 10; // enche a tela, corta a sobra
     }
 
+    static class Enquadramento
+    {
+        public static Rectangle Preencher(Size imagem, Size tela, PointF? posicaoManual)
+        {
+            PointF posicao = posicaoManual ?? new PointF(0.5f, 0.5f);
+            float escala = Math.Max(
+                tela.Width / (float)imagem.Width,
+                tela.Height / (float)imagem.Height);
+            int largura = Math.Max(tela.Width, (int)Math.Ceiling(imagem.Width * escala));
+            int altura = Math.Max(tela.Height, (int)Math.Ceiling(imagem.Height * escala));
+            float x = Math.Max(0f, Math.Min(1f, posicao.X));
+            float y = Math.Max(0f, Math.Min(1f, posicao.Y));
+            return new Rectangle(
+                (int)Math.Round((tela.Width - largura) * x),
+                (int)Math.Round((tela.Height - altura) * y),
+                largura, altura);
+        }
+    }
+
     sealed class Config
     {
         public string Pasta = "";
@@ -71,6 +91,9 @@ namespace KaelithWall
         public bool Subpastas = false;
         public int Ajuste = KaelithWall.Ajuste.Preencher;
         public string Atual = "";
+        public readonly List<string> PastasRecentes = new List<string>();
+        readonly Dictionary<string, PointF> posicoes =
+            new Dictionary<string, PointF>(StringComparer.OrdinalIgnoreCase);
 
         static string Caminho()
         {
@@ -103,11 +126,34 @@ namespace KaelithWall
                         case "subpastas": c.Subpastas = (valor == "1"); break;
                         case "ajuste": int.TryParse(valor, out c.Ajuste); break;
                         case "atual": c.Atual = valor; break;
+                        case "pasta_recente":
+                            try
+                            {
+                                c.PastasRecentes.Add(Encoding.UTF8.GetString(
+                                    Convert.FromBase64String(valor)));
+                            }
+                            catch { }
+                            break;
+                        case "posicao":
+                            string[] partes = valor.Split('|');
+                            float x, y;
+                            if (partes.Length == 3 &&
+                                float.TryParse(partes[1], NumberStyles.Float,
+                                    CultureInfo.InvariantCulture, out x) &&
+                                float.TryParse(partes[2], NumberStyles.Float,
+                                    CultureInfo.InvariantCulture, out y))
+                            {
+                                string arquivo = Encoding.UTF8.GetString(
+                                    Convert.FromBase64String(partes[0]));
+                                c.posicoes[arquivo] = new PointF(x, y);
+                            }
+                            break;
                     }
                 }
             }
             catch { }
             if (c.Intervalo < 5) c.Intervalo = 5;
+            if (!string.IsNullOrEmpty(c.Pasta)) c.LembrarPasta(c.Pasta);
             return c;
         }
 
@@ -123,9 +169,170 @@ namespace KaelithWall
                 sb.AppendLine("subpastas=" + (Subpastas ? "1" : "0"));
                 sb.AppendLine("ajuste=" + Ajuste.ToString());
                 sb.AppendLine("atual=" + Atual);
+                foreach (string pasta in PastasRecentes)
+                    sb.AppendLine("pasta_recente=" + Convert.ToBase64String(
+                        Encoding.UTF8.GetBytes(pasta)));
+                foreach (KeyValuePair<string, PointF> p in posicoes)
+                {
+                    string arquivo = Convert.ToBase64String(Encoding.UTF8.GetBytes(p.Key));
+                    sb.AppendLine("posicao=" + arquivo + "|" +
+                        p.Value.X.ToString("R", CultureInfo.InvariantCulture) + "|" +
+                        p.Value.Y.ToString("R", CultureInfo.InvariantCulture));
+                }
                 File.WriteAllText(Caminho(), sb.ToString(), Encoding.UTF8);
             }
             catch { }
+        }
+
+        public PointF? PosicaoDe(string caminho)
+        {
+            PointF valor;
+            return posicoes.TryGetValue(caminho, out valor) ? (PointF?)valor : null;
+        }
+
+        public void GuardarPosicao(string caminho, PointF valor)
+        {
+            posicoes[caminho] = valor;
+        }
+
+        public void LembrarPasta(string pasta)
+        {
+            for (int i = PastasRecentes.Count - 1; i >= 0; i--)
+                if (string.Equals(PastasRecentes[i], pasta,
+                    StringComparison.OrdinalIgnoreCase))
+                    PastasRecentes.RemoveAt(i);
+            PastasRecentes.Insert(0, pasta);
+        }
+    }
+
+    sealed class EditorPosicao : Form
+    {
+        readonly Image imagem;
+        PointF posicao;
+        Point ultimoMouse;
+        bool arrastando;
+        readonly Button aplicar;
+        readonly Button cancelar;
+
+        public PointF Posicao { get { return posicao; } }
+
+        public EditorPosicao(Image imagemAtual, PointF posicaoAtual)
+        {
+            imagem = imagemAtual;
+            posicao = posicaoAtual;
+            FormBorderStyle = FormBorderStyle.None;
+            StartPosition = FormStartPosition.Manual;
+            Bounds = Screen.PrimaryScreen.Bounds;
+            TopMost = true;
+            ShowInTaskbar = false;
+            KeyPreview = true;
+            DoubleBuffered = true;
+            BackColor = Color.Black;
+            Cursor = Cursors.SizeAll;
+
+            aplicar = new Button();
+            aplicar.Text = "Aplicar";
+            aplicar.Size = new Size(96, 34);
+            aplicar.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
+            aplicar.Cursor = Cursors.Default;
+            aplicar.UseVisualStyleBackColor = false;
+            aplicar.FlatStyle = FlatStyle.Flat;
+            aplicar.FlatAppearance.BorderColor = Color.FromArgb(117, 168, 255);
+            aplicar.BackColor = Color.FromArgb(47, 111, 214);
+            aplicar.ForeColor = Color.White;
+            aplicar.Font = new Font(SystemFonts.MessageBoxFont, FontStyle.Bold);
+            aplicar.AccessibleName = "Aplicar enquadramento";
+            aplicar.Click += delegate { DialogResult = DialogResult.OK; Close(); };
+            Controls.Add(aplicar);
+
+            cancelar = new Button();
+            cancelar.Text = "Cancelar";
+            cancelar.Size = new Size(96, 34);
+            cancelar.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
+            cancelar.Cursor = Cursors.Default;
+            cancelar.UseVisualStyleBackColor = false;
+            cancelar.FlatStyle = FlatStyle.Flat;
+            cancelar.FlatAppearance.BorderColor = Color.FromArgb(130, 130, 136);
+            cancelar.BackColor = Color.FromArgb(48, 48, 52);
+            cancelar.ForeColor = Color.White;
+            cancelar.Font = SystemFonts.MessageBoxFont;
+            cancelar.AccessibleName = "Cancelar ajuste manual";
+            cancelar.Click += delegate { DialogResult = DialogResult.Cancel; Close(); };
+            Controls.Add(cancelar);
+
+            AcceptButton = aplicar;
+            CancelButton = cancelar;
+            PosicionarBotoes();
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            Activate();
+            Focus();
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            PosicionarBotoes();
+            Invalidate();
+        }
+
+        void PosicionarBotoes()
+        {
+            if (aplicar == null || cancelar == null) return;
+            cancelar.Location = new Point(ClientSize.Width - cancelar.Width - 24,
+                ClientSize.Height - cancelar.Height - 22);
+            aplicar.Location = new Point(cancelar.Left - aplicar.Width - 10, cancelar.Top);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            Rectangle destino = Enquadramento.Preencher(imagem.Size, ClientSize, posicao);
+            e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            e.Graphics.DrawImage(imagem, destino);
+
+            Rectangle faixa = new Rectangle(0, ClientSize.Height - 78, ClientSize.Width, 78);
+            using (Brush fundo = new SolidBrush(Color.FromArgb(185, 18, 18, 20)))
+                e.Graphics.FillRectangle(fundo, faixa);
+            using (Brush texto = new SolidBrush(Color.White))
+                e.Graphics.DrawString("Arraste a imagem para escolher o enquadramento  •  Enter aplica  •  Esc cancela",
+                    SystemFonts.MessageBoxFont, texto, new PointF(24, ClientSize.Height - 50));
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button != MouseButtons.Left) return;
+            arrastando = true;
+            ultimoMouse = e.Location;
+            Capture = true;
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            if (!arrastando) return;
+            Rectangle r = Enquadramento.Preencher(imagem.Size, ClientSize, posicao);
+            int x = Math.Max(ClientSize.Width - r.Width,
+                Math.Min(0, r.X + e.X - ultimoMouse.X));
+            int y = Math.Max(ClientSize.Height - r.Height,
+                Math.Min(0, r.Y + e.Y - ultimoMouse.Y));
+            posicao = new PointF(
+                r.Width == ClientSize.Width ? 0.5f : x / (float)(ClientSize.Width - r.Width),
+                r.Height == ClientSize.Height ? 0.5f : y / (float)(ClientSize.Height - r.Height));
+            ultimoMouse = e.Location;
+            Invalidate();
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            arrastando = false;
+            Capture = false;
         }
     }
 
@@ -144,10 +351,11 @@ namespace KaelithWall
         List<string> ordem = new List<string>();
         int pos = -1;
         int trocando;              // trava simples: 0 livre, 1 ocupado
+        int reaplicar;             // guarda o ultimo pedido feito durante uma troca
         string erroUltimo = "";
 
         ToolStripMenuItem itemAtual, itemPausar, itemAleatorio, itemSequencia, itemSubpastas;
-        ToolStripMenuItem menuIntervalo, menuAjuste;
+        ToolStripMenuItem menuIntervalo, menuAjuste, menuPastasRecentes;
 
         public Bandeja() : this(false) { }
 
@@ -219,13 +427,17 @@ namespace KaelithWall
             m.Items.Add(menuIntervalo);
 
             menuAjuste = new ToolStripMenuItem("A&juste na tela");
-            AddAjuste(Ajuste.Preencher, "Preencher (corta a sobra)");
-            AddAjuste(Ajuste.Ajustar, "Ajustar (imagem inteira)");
-            AddAjuste(Ajuste.Esticar, "Esticar");
-            AddAjuste(Ajuste.Centralizar, "Centralizar");
+            AddAjuste(Ajuste.Preencher, "Preencher (corte central, sem barras)");
+            AddAjuste(Ajuste.Ajustar, "Ajustar (imagem inteira, centralizada)");
+            AddAjuste(Ajuste.Esticar, "Esticar (sem corte, pode deformar)");
+            AddAjuste(Ajuste.Centralizar, "Centralizar (tamanho original, pode vazar)");
             m.Items.Add(menuAjuste);
+            m.Items.Add(Item("Ajustar &manualmente...", delegate { AjustarManualmente(); }));
 
             m.Items.Add(Item("Escolher &pasta...", EscolherPasta));
+            menuPastasRecentes = new ToolStripMenuItem("Pastas &recentes");
+            menuPastasRecentes.DropDownOpening += delegate { MontarPastasRecentes(); };
+            m.Items.Add(menuPastasRecentes);
             itemSubpastas = Item("Incluir subpastas", delegate
             {
                 cfg.Subpastas = !cfg.Subpastas;
@@ -416,17 +628,36 @@ namespace KaelithWall
             // A troca sai da linha principal: num JPEG grande o Windows pode
             // levar algumas centenas de milissegundos recodificando, e o menu
             // da bandeja nao pode congelar junto.
-            if (Interlocked.Exchange(ref trocando, 1) == 1) return;
+            if (!ReservarTroca(ref trocando, ref reaplicar)) return;
             int ajuste = cfg.Ajuste;
+            PointF? posicaoManual = cfg.PosicaoDe(caminho);
             ThreadPool.QueueUserWorkItem(delegate
             {
-                try { Definir(caminho, ajuste); cfg.Atual = caminho; cfg.Salvar(); }
+                try { Definir(caminho, ajuste, posicaoManual); cfg.Atual = caminho; cfg.Salvar(); }
                 catch (Exception e) { Avisar("(erro ao aplicar: " + e.Message + ")"); }
-                finally { Interlocked.Exchange(ref trocando, 0); }
+                finally
+                {
+                    bool repetir = LiberarTroca(ref trocando, ref reaplicar);
+                    if (repetir && linhaPrincipal != null)
+                        linhaPrincipal.Post(delegate { Aplicar(); }, null);
+                }
             });
         }
 
-        static void Definir(string caminho, int ajuste)
+        static bool ReservarTroca(ref int trocando, ref int reaplicar)
+        {
+            if (Interlocked.Exchange(ref trocando, 1) == 0) return true;
+            Interlocked.Exchange(ref reaplicar, 1);
+            return false;
+        }
+
+        static bool LiberarTroca(ref int trocando, ref int reaplicar)
+        {
+            Interlocked.Exchange(ref trocando, 0);
+            return Interlocked.Exchange(ref reaplicar, 0) == 1;
+        }
+
+        static void Definir(string caminho, int ajuste, PointF? posicaoManual)
         {
             // Dois slots: nunca sobrescrever o arquivo que o Windows esta exibindo.
             string dir = Path.Combine(Environment.GetFolderPath(
@@ -438,22 +669,31 @@ namespace KaelithWall
             string primeiro = Path.Combine(dir, "wallpaper-0.bmp");
             string pronto = string.Equals(anterior, primeiro, StringComparison.OrdinalIgnoreCase)
                 ? Path.Combine(dir, "wallpaper-1.bmp") : primeiro;
+            int ajusteEfetivo = ajuste;
             using (Image imagem = Image.FromFile(caminho))
             {
-                const int tagOrientacao = 0x0112;
-                if (Array.IndexOf(imagem.PropertyIdList, tagOrientacao) >= 0)
+                Orientar(imagem);
+                Size tamanho = imagem.Size;
+                Rectangle destino = new Rectangle(Point.Empty, tamanho);
+                if (ajuste == Ajuste.Preencher)
                 {
-                    byte[] valor = imagem.GetPropertyItem(tagOrientacao).Value;
-                    if (valor.Length >= 2)
-                        imagem.RotateFlip(RotacaoExif(BitConverter.ToUInt16(valor, 0)));
+                    tamanho = Screen.PrimaryScreen.Bounds.Size;
+                    destino = Enquadramento.Preencher(imagem.Size, tamanho, posicaoManual);
+                    ajusteEfetivo = Ajuste.Centralizar;
                 }
-                using (Bitmap bmp = new Bitmap(imagem.Width, imagem.Height,
+                using (Bitmap bmp = new Bitmap(tamanho.Width, tamanho.Height,
                     System.Drawing.Imaging.PixelFormat.Format24bppRgb))
                 {
                     using (Graphics g = Graphics.FromImage(bmp))
                     {
                         g.Clear(Color.Black);
-                        g.DrawImageUnscaled(imagem, 0, 0);
+                        if (ajuste == Ajuste.Preencher)
+                        {
+                            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                            g.DrawImage(imagem, destino);
+                        }
+                        else CopiarPixels(g, imagem);
                     }
                     bmp.Save(pronto, System.Drawing.Imaging.ImageFormat.Bmp);
                 }
@@ -462,8 +702,10 @@ namespace KaelithWall
             {
                 if (k != null)
                 {
-                    k.SetValue("WallpaperStyle", ajuste.ToString(), RegistryValueKind.String);
+                    k.SetValue("WallpaperStyle", ajusteEfetivo.ToString(), RegistryValueKind.String);
                     k.SetValue("TileWallpaper", "0", RegistryValueKind.String);
+                    k.SetValue("WallpaperOriginX", "0", RegistryValueKind.String);
+                    k.SetValue("WallpaperOriginY", "0", RegistryValueKind.String);
                 }
             }
             if (!Nativo.SystemParametersInfoW(
@@ -485,6 +727,47 @@ namespace KaelithWall
                 case 8: return RotateFlipType.Rotate270FlipNone;
                 default: return RotateFlipType.RotateNoneFlipNone;
             }
+        }
+
+        static void CopiarPixels(Graphics destino, Image imagem)
+        {
+            destino.DrawImage(imagem,
+                new Rectangle(0, 0, imagem.Width, imagem.Height),
+                0, 0, imagem.Width, imagem.Height, GraphicsUnit.Pixel);
+        }
+
+        static void Orientar(Image imagem)
+        {
+            const int tagOrientacao = 0x0112;
+            if (Array.IndexOf(imagem.PropertyIdList, tagOrientacao) < 0) return;
+            byte[] valor = imagem.GetPropertyItem(tagOrientacao).Value;
+            if (valor.Length >= 2)
+                imagem.RotateFlip(RotacaoExif(BitConverter.ToUInt16(valor, 0)));
+        }
+
+        void AjustarManualmente()
+        {
+            string caminho = ArquivoAtual();
+            if (string.IsNullOrEmpty(caminho) || !File.Exists(caminho)) return;
+            try
+            {
+                using (Image arquivo = Image.FromFile(caminho))
+                {
+                    Orientar(arquivo);
+                    using (Bitmap imagem = new Bitmap(arquivo))
+                    using (EditorPosicao editor = new EditorPosicao(imagem,
+                        cfg.PosicaoDe(caminho) ?? new PointF(0.5f, 0.5f)))
+                    {
+                        if (editor.ShowDialog() != DialogResult.OK) return;
+                        cfg.GuardarPosicao(caminho, editor.Posicao);
+                    }
+                }
+                cfg.Ajuste = Ajuste.Preencher;
+                cfg.Salvar();
+                Aplicar();
+                Atualizar();
+            }
+            catch (Exception e) { Avisar("(erro no ajuste manual: " + e.Message + ")"); }
         }
 
         void Avisar(string mensagem)
@@ -525,13 +808,44 @@ namespace KaelithWall
                 d.ShowNewFolderButton = false;
                 if (Directory.Exists(cfg.Pasta)) d.SelectedPath = cfg.Pasta;
                 if (d.ShowDialog() != DialogResult.OK) return;
-                cfg.Pasta = d.SelectedPath;
-                cfg.Atual = "";
-                cfg.Salvar();
-                pos = -1;
-                Varrer();
-                Aplicar();
+                UsarPasta(d.SelectedPath);
             }
+        }
+
+        void MontarPastasRecentes()
+        {
+            menuPastasRecentes.DropDownItems.Clear();
+            if (cfg.PastasRecentes.Count == 0)
+            {
+                ToolStripMenuItem vazio = new ToolStripMenuItem("(nenhuma pasta lembrada)");
+                vazio.Enabled = false;
+                menuPastasRecentes.DropDownItems.Add(vazio);
+                return;
+            }
+            foreach (string pastaSalva in cfg.PastasRecentes)
+            {
+                string pasta = pastaSalva;
+                bool existe = Directory.Exists(pasta);
+                ToolStripMenuItem item = Item(existe ? pasta : pasta + " (não encontrada)",
+                    delegate { UsarPasta(pasta); });
+                item.ToolTipText = pasta;
+                item.Enabled = existe;
+                item.Checked = string.Equals(cfg.Pasta, pasta,
+                    StringComparison.OrdinalIgnoreCase);
+                menuPastasRecentes.DropDownItems.Add(item);
+            }
+        }
+
+        void UsarPasta(string pasta)
+        {
+            if (!Directory.Exists(pasta)) return;
+            cfg.Pasta = pasta;
+            cfg.LembrarPasta(pasta);
+            cfg.Atual = "";
+            cfg.Salvar();
+            pos = -1;
+            Varrer();
+            Aplicar();
         }
 
         void Sair()
@@ -623,10 +937,49 @@ namespace KaelithWall
             // Quantas imagens o menu de extensoes aceita.
             checar(Suportado("x.JPG") && Suportado("x.png") && !Suportado("x.txt"),
                    "filtro de extensao aceita imagem e recusa o resto");
+            Config memoriaPastas = new Config();
+            memoriaPastas.LembrarPasta(@"C:\Imagens\A");
+            memoriaPastas.LembrarPasta(@"C:\Imagens\B");
+            memoriaPastas.LembrarPasta(@"c:\imagens\a");
+            checar(memoriaPastas.PastasRecentes.Count == 2 &&
+                   memoriaPastas.PastasRecentes[0] == @"c:\imagens\a" &&
+                   memoriaPastas.PastasRecentes[1] == @"C:\Imagens\B",
+                   "memoria de pastas evita duplicatas e deixa a mais recente primeiro");
             checar(RotacaoExif(1) == RotateFlipType.RotateNoneFlipNone &&
                    RotacaoExif(6) == RotateFlipType.Rotate90FlipNone &&
                    RotacaoExif(8) == RotateFlipType.Rotate270FlipNone,
                    "orientacao EXIF vira a rotacao correta");
+            checar(Ajuste.Centralizar == 0 && Ajuste.Esticar == 2 &&
+                   Ajuste.Ajustar == 6 && Ajuste.Preencher == 10,
+                   "os quatro ajustes usam exatamente os modos nativos do Windows");
+            Rectangle centro = Enquadramento.Preencher(
+                new Size(3732, 2524), new Size(1824, 982), new PointF(0.5f, 0.5f));
+            Rectangle padrao = Enquadramento.Preencher(
+                new Size(3732, 2524), new Size(1824, 982), null);
+            Rectangle topo = Enquadramento.Preencher(
+                new Size(3732, 2524), new Size(1824, 982), new PointF(0f, 0f));
+            Rectangle fundo = Enquadramento.Preencher(
+                new Size(3732, 2524), new Size(1824, 982), new PointF(1f, 1f));
+            checar(padrao == centro && centro.Width == 1824 && centro.X == 0 && centro.Y < 0 &&
+                   topo.Y == 0 && fundo.Bottom == 982,
+                   "Preencher usa o mesmo centro inicial do editor e alcanca as bordas");
+            using (Bitmap fonteDpi = new Bitmap(12, 12))
+            using (Bitmap copiaDpi = new Bitmap(12, 12))
+            {
+                fonteDpi.SetResolution(72f, 72f);
+                copiaDpi.SetResolution(96f, 96f);
+                using (Graphics g = Graphics.FromImage(fonteDpi)) g.Clear(Color.Blue);
+                fonteDpi.SetPixel(11, 11, Color.Red);
+                using (Graphics g = Graphics.FromImage(copiaDpi)) CopiarPixels(g, fonteDpi);
+                checar(copiaDpi.GetPixel(11, 11).R > 200,
+                       "a conversao copia pixels sem ampliar imagens de 72 DPI");
+            }
+            int trocaTeste = 0, reaplicarTeste = 0;
+            bool primeiraTroca = ReservarTroca(ref trocaTeste, ref reaplicarTeste);
+            bool segundaTroca = ReservarTroca(ref trocaTeste, ref reaplicarTeste);
+            bool repetiuTroca = LiberarTroca(ref trocaTeste, ref reaplicarTeste);
+            checar(primeiraTroca && !segundaTroca && repetiuTroca,
+                   "o ultimo ajuste pedido durante uma troca nao e descartado");
 
             r.AppendLine(falhas == 0
                 ? "RESULTADO: todos os testes passaram."

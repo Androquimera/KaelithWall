@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.1.0 — 28/10/2026
+
+### Adicionado
+
+- Editor manual de enquadramento em tela cheia: arraste a imagem e escolha
+  **Aplicar** ou **Cancelar** antes de alterar o wallpaper.
+- Posição de enquadramento persistente por imagem.
+- Menu de pastas recentes na bandeja, sem duplicatas e com a pasta mais recente
+  no topo.
+
+### Alterado
+
+- **Preencher** agora compõe o wallpaper já na resolução da tela, centralizado
+  pelo mesmo cálculo usado no editor manual.
+- A bateria `--autoteste` passou de 14 para 20 verificações.
+
+### Corrigido
+
+- Imagens marcadas como 72 DPI não são mais ampliadas em 33,33% durante a
+  conversão; a cópia agora preserva as dimensões reais em pixels.
+- A orientação EXIF é aplicada antes do enquadramento e da conversão.
+- Uma solicitação para reaplicar o wallpaper feita durante outra troca não é
+  mais descartada: o último pedido fica pendente e roda ao final.
+
 ## 1.0.0 — 28/10/2026
 
 Primeira versão.

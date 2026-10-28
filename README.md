@@ -3,9 +3,8 @@
 Troca o papel de parede do Windows a partir de uma pasta sua, sem pesar na
 máquina.
 
-Um executável de 232 KB, sem instalador, sem dependência, sem serviço em
-segundo plano. Fica como um ícone na bandeja do sistema e consome **0,02% de
-um núcleo** de processador enquanto trabalha.
+Um executável portátil, sem instalador, sem dependência e sem serviço em
+segundo plano. Fica como um ícone na bandeja do sistema enquanto trabalha.
 
 ---
 
@@ -24,7 +23,11 @@ Pelo menu do ícone na bandeja:
   ordenação do Explorer, então `9.jpg` vem antes de `10.jpg`
 - **Intervalo** — de 10 segundos a 1 hora
 - **Ajuste na tela** — preencher, ajustar, esticar ou centralizar
-- **Escolher pasta**, **incluir subpastas** e **recarregar pasta**
+- **Ajustar manualmente** — abre a imagem em tela cheia para você arrastar o
+  enquadramento e escolher exatamente qual parte ficará visível; **Aplicar**
+  salva a posição daquela imagem e **Cancelar** não muda nada
+- **Escolher pasta**, **pastas recentes**, **incluir subpastas** e
+  **recarregar pasta**
 
 O item do topo do menu mostra o nome da imagem atual e a posição no ciclo,
 assim: `paisagem.jpg   (38/185)`.
@@ -34,6 +37,10 @@ repetir qualquer imagem, em vez de sortear uma por vez. Você vê todas as suas
 imagens, e nenhuma aparece duas vezes antes das outras aparecerem uma.
 
 Formatos: JPG, JPEG, JFIF, PNG, BMP, GIF, TIF, TIFF e DIB.
+
+O modo **Preencher** parte do mesmo enquadramento central mostrado no editor
+manual. Quando você ajusta uma imagem, o KaelithWall lembra a posição só para
+ela e reutiliza o enquadramento nas próximas vezes.
 
 ---
 
@@ -46,11 +53,14 @@ Dois arquivos de cache em `%LOCALAPPDATA%\KaelithWall` evitam sobrescrever
 a imagem aplicada. Isso usa memória e disco durante a troca; as medições de
 consumo da implementação anterior precisam ser refeitas.
 
+A conversão mantém as dimensões reais em pixels — imagens marcadas como 72 DPI
+não são ampliadas em 33,33% — e respeita a orientação EXIF gravada pela câmera.
+
 ---
 
 ## Instalar
 
-1. Baixe o `KaelithWall.exe`
+1. Baixe o executável da [versão mais recente](https://github.com/Androquimera/KaelithWall/releases/latest)
 2. Coloque numa pasta que você vá manter, por exemplo
    `C:\Users\<você>\Programas\KaelithWall`
 3. Execute. Na primeira vez ele pergunta qual pasta de imagens usar.
@@ -91,11 +101,11 @@ O próprio executável carrega a bateria de testes dentro dele:
 ./KaelithWall.exe --autoteste
 ```
 
-São 14 verificações da lógica de verdade — varredura da pasta, ordenação
-natural, próximo, anterior, volta do ciclo nas duas pontas, embaralhamento sem
-perder nem repetir imagem, pausa, intervalo, filtro de extensão. Sai com código
-0 se passou e 2 se falhou, e **não mexe no seu papel de parede** enquanto
-testa.
+São 20 verificações da lógica de verdade — varredura da pasta, ordenação
+natural, navegação, embaralhamento, pausa, intervalo, filtro de extensão,
+pastas recentes, orientação EXIF, modos de ajuste, enquadramento, cópia de
+pixels e reaplicação concorrente. Sai com código 0 se passou e 2 se falhou, e
+**não mexe no seu papel de parede** enquanto testa.
 
 ### O ícone
 
