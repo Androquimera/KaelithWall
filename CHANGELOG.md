@@ -2,8 +2,7 @@
 
 ## 1.0.0 — 28/10/2026
 
-Primeira versão. Substitui o John's Background Switcher, que foi desinstalado
-da máquina.
+Primeira versão.
 
 ### Adicionado
 
@@ -16,46 +15,47 @@ da máquina.
   esticar, centralizar), escolher pasta, incluir subpastas, recarregar pasta.
   Clique duplo no ícone avança. O item do topo mostra o nome da imagem e a
   posição no ciclo.
+- Ordem em sequência usa `StrCmpLogicalW`, a mesma comparação do Explorer:
+  `9.jpg` vem antes de `10.jpg`.
+- Ordem aleatória embaralha a lista inteira e percorre até o fim antes de
+  repetir, em vez de sortear uma imagem por vez.
 - Configuração em texto simples, em `%APPDATA%\KaelithWall\config.txt`.
 - Ícone próprio em dez tamanhos (16 a 256), gerado de `logo.webp` pelo
-  `fazer_ico.py`.
+  `fazer_ico.py`, com redução em alfa premultiplicado e desenho simplificado
+  abaixo de 24 px.
 - `--autoteste`: 14 verificações da lógica real, sem tocar no papel de parede.
   Sai com 0 se passou, 2 se falhou.
 
 ### Desempenho
 
-Medido em 27/10/2026, trocando a cada 10 segundos, na mesma pasta de 185
-imagens (1,1 GB), com o `explorer.exe` contado junto porque é ele quem passa a
-fazer o trabalho de imagem:
+Medido em 27/10/2026, trocando a cada 10 segundos, numa pasta de 185 imagens
+(1,1 GB), no Windows 10:
 
-| | processo próprio | explorer.exe | **CPU total** | RAM |
-|---|---|---|---|---|
-| Background Switcher | 35,33% | 4,27% | **39,60%** | 56,5 MB |
-| KaelithWall | 0,02% | 7,66% | **7,67%** | 25,7 MB |
+| | processo próprio | explorer.exe | total |
+|---|---|---|---|
+| CPU | 0,02% | 7,66% | **7,67% de um núcleo** |
+| RAM | 25,7 MB | — | — |
 
-Base: com nada trocando, o `explorer` sozinho gasta 0,59%.
+Base de comparação: com nada trocando papel de parede, o `explorer.exe`
+sozinho já gasta 0,59%.
 
-**5,2× menos CPU e menos da metade da RAM**, sem perder função nem qualidade.
-O motivo é um só: o app nunca decodifica, escala ou grava imagem. Entrega o
-caminho do arquivo original ao Windows (`SPI_SETDESKWALLPAPER`) e quem faz o
-trabalho é o próprio Windows, com cache. O Background Switcher fazia o
-contrário — carregava o ImageMagick (23 MB só na DLL nativa), redimensionava e
-gravava um BMP de 16,6 MB a cada troca, animava uma transição de 33 passos e
-repintava o texto dos ícones da área de trabalho a cada 2 minutos, gastando CPU
-mesmo sem trocar nada.
+O custo é baixo porque o app nunca decodifica, escala ou grava imagem. Ele
+entrega o caminho do arquivo original ao Windows (`SPI_SETDESKWALLPAPER`) e
+quem faz o trabalho é o próprio Windows, com cache. Nenhuma biblioteca de
+imagem é carregada e nenhum arquivo intermediário é gravado em disco.
 
-`SPI_SETDESKWALLPAPER` leva 1.314 ms no arquivo mais pesado da pasta
-(`64.png`, 83,4 MB) e menos de 100 ms nos JPEGs comuns. Esse tempo é do
-`explorer`, e a troca sai de uma thread separada, então o menu da bandeja nunca
-congela.
+`SPI_SETDESKWALLPAPER` leva 1.314 ms no arquivo mais pesado testado
+(PNG de 83,4 MB) e menos de 100 ms nos JPEGs comuns. Esse tempo é do
+`explorer`, e a troca sai de uma thread separada, então o menu da bandeja
+nunca congela.
 
 ### Testes
 
-`--autoteste`: 14/14. Cobre varredura, ordem natural (9 antes de 10, igual ao
-Explorer), Próximo, Anterior, volta do ciclo nas duas pontas, embaralhamento
-sem perder nem repetir imagem, pausa, intervalo e filtro de extensão.
+`--autoteste`: 14/14. Cobre varredura, ordem natural, Próximo, Anterior, volta
+do ciclo nas duas pontas, embaralhamento sem perder nem repetir imagem, pausa,
+intervalo e filtro de extensão.
 
 ### Pendente
 
-- Atalhos globais de teclado (o Background Switcher tinha N/P/V/C/S)
+- Atalhos globais de teclado
 - Vários monitores com imagens diferentes
