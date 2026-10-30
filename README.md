@@ -34,13 +34,16 @@ assim: `paisagem.jpg   (38/185)`.
 
 No modo aleatório ele embaralha a lista inteira e percorre até o fim antes de
 repetir qualquer imagem, em vez de sortear uma por vez. Você vê todas as suas
-imagens, e nenhuma aparece duas vezes antes das outras aparecerem uma.
+imagens, e nenhuma aparece duas vezes antes das outras aparecerem uma. A rodada
+continua do ponto em que parou mesmo se o aplicativo for fechado e aberto de
+novo.
 
 Formatos: JPG, JPEG, JFIF, PNG, BMP, GIF, TIF, TIFF e DIB.
 
 O modo **Preencher** parte do mesmo enquadramento central mostrado no editor
 manual. Quando você ajusta uma imagem, o KaelithWall lembra a posição só para
-ela e reutiliza o enquadramento nas próximas vezes.
+ela e reutiliza o enquadramento nas próximas vezes, mesmo se o arquivo for
+renomeado, movido ou copiado para outra pasta.
 
 ---
 
@@ -101,11 +104,12 @@ O próprio executável carrega a bateria de testes dentro dele:
 ./KaelithWall.exe --autoteste
 ```
 
-São 20 verificações da lógica de verdade — varredura da pasta, ordenação
-natural, navegação, embaralhamento, pausa, intervalo, filtro de extensão,
-pastas recentes, orientação EXIF, modos de ajuste, enquadramento, cópia de
-pixels e reaplicação concorrente. Sai com código 0 se passou e 2 se falhou, e
-**não mexe no seu papel de parede** enquanto testa.
+São 25 verificações da lógica de verdade — varredura da pasta, ordenação
+natural, navegação, rodada aleatória persistente, pausa, intervalo, filtro de
+extensão, pastas recentes, memória de enquadramento pela identidade da imagem,
+orientação EXIF, modos de ajuste, enquadramento, cópia de pixels e reaplicação
+concorrente. Sai com código 0 se passou e 2 se falhou, e **não mexe no seu papel
+de parede** enquanto testa.
 
 ### O ícone
 

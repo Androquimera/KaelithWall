@@ -15,6 +15,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -23,9 +24,9 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("KaelithWall")]
 [assembly: AssemblyProduct("KaelithWall")]
 [assembly: AssemblyDescription("Trocador leve de papel de parede para Windows")]
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
-[assembly: AssemblyInformationalVersion("1.1.0")]
+[assembly: AssemblyVersion("1.1.1.0")]
+[assembly: AssemblyFileVersion("1.1.1.0")]
+[assembly: AssemblyInformationalVersion("1.1.1")]
 
 namespace KaelithWall
 {
@@ -91,9 +92,15 @@ namespace KaelithWall
         public bool Subpastas = false;
         public int Ajuste = KaelithWall.Ajuste.Preencher;
         public string Atual = "";
+        public bool MemoriaExibicao = false;
+        public bool PosicoesIdentificadas = false;
         public readonly List<string> PastasRecentes = new List<string>();
+        public readonly List<string> OrdemAleatoria = new List<string>();
+        public readonly List<string> ExibidasNaRodada = new List<string>();
         readonly Dictionary<string, PointF> posicoes =
             new Dictionary<string, PointF>(StringComparer.OrdinalIgnoreCase);
+        readonly Dictionary<string, PointF> posicoesPorId =
+            new Dictionary<string, PointF>(StringComparer.Ordinal);
 
         static string Caminho()
         {
@@ -126,6 +133,25 @@ namespace KaelithWall
                         case "subpastas": c.Subpastas = (valor == "1"); break;
                         case "ajuste": int.TryParse(valor, out c.Ajuste); break;
                         case "atual": c.Atual = valor; break;
+                        case "memoria_exibicao": c.MemoriaExibicao = (valor == "1"); break;
+                        case "posicoes_identificadas":
+                            c.PosicoesIdentificadas = (valor == "1"); break;
+                        case "ordem_aleatoria":
+                            try
+                            {
+                                c.OrdemAleatoria.Add(Encoding.UTF8.GetString(
+                                    Convert.FromBase64String(valor)));
+                            }
+                            catch { }
+                            break;
+                        case "exibida":
+                            try
+                            {
+                                c.ExibidasNaRodada.Add(Encoding.UTF8.GetString(
+                                    Convert.FromBase64String(valor)));
+                            }
+                            catch { }
+                            break;
                         case "pasta_recente":
                             try
                             {
@@ -148,12 +174,31 @@ namespace KaelithWall
                                 c.posicoes[arquivo] = new PointF(x, y);
                             }
                             break;
+                        case "posicao_id":
+                            string[] idPartes = valor.Split('|');
+                            float idX, idY;
+                            if (idPartes.Length == 3 &&
+                                float.TryParse(idPartes[1], NumberStyles.Float,
+                                    CultureInfo.InvariantCulture, out idX) &&
+                                float.TryParse(idPartes[2], NumberStyles.Float,
+                                    CultureInfo.InvariantCulture, out idY))
+                                c.posicoesPorId[idPartes[0]] = new PointF(idX, idY);
+                            break;
                     }
                 }
             }
             catch { }
             if (c.Intervalo < 5) c.Intervalo = 5;
             if (!string.IsNullOrEmpty(c.Pasta)) c.LembrarPasta(c.Pasta);
+            if (!c.PosicoesIdentificadas)
+            {
+                foreach (KeyValuePair<string, PointF> p in c.posicoes)
+                {
+                    string identidade = IdentidadeImagem(p.Key);
+                    if (identidade != null) c.posicoesPorId[identidade] = p.Value;
+                }
+                c.PosicoesIdentificadas = true;
+            }
             return c;
         }
 
@@ -169,6 +214,15 @@ namespace KaelithWall
                 sb.AppendLine("subpastas=" + (Subpastas ? "1" : "0"));
                 sb.AppendLine("ajuste=" + Ajuste.ToString());
                 sb.AppendLine("atual=" + Atual);
+                sb.AppendLine("memoria_exibicao=" + (MemoriaExibicao ? "1" : "0"));
+                sb.AppendLine("posicoes_identificadas=" +
+                    (PosicoesIdentificadas ? "1" : "0"));
+                foreach (string arquivo in OrdemAleatoria)
+                    sb.AppendLine("ordem_aleatoria=" + Convert.ToBase64String(
+                        Encoding.UTF8.GetBytes(arquivo)));
+                foreach (string arquivo in ExibidasNaRodada)
+                    sb.AppendLine("exibida=" + Convert.ToBase64String(
+                        Encoding.UTF8.GetBytes(arquivo)));
                 foreach (string pasta in PastasRecentes)
                     sb.AppendLine("pasta_recente=" + Convert.ToBase64String(
                         Encoding.UTF8.GetBytes(pasta)));
@@ -179,6 +233,10 @@ namespace KaelithWall
                         p.Value.X.ToString("R", CultureInfo.InvariantCulture) + "|" +
                         p.Value.Y.ToString("R", CultureInfo.InvariantCulture));
                 }
+                foreach (KeyValuePair<string, PointF> p in posicoesPorId)
+                    sb.AppendLine("posicao_id=" + p.Key + "|" +
+                        p.Value.X.ToString("R", CultureInfo.InvariantCulture) + "|" +
+                        p.Value.Y.ToString("R", CultureInfo.InvariantCulture));
                 File.WriteAllText(Caminho(), sb.ToString(), Encoding.UTF8);
             }
             catch { }
@@ -187,12 +245,45 @@ namespace KaelithWall
         public PointF? PosicaoDe(string caminho)
         {
             PointF valor;
-            return posicoes.TryGetValue(caminho, out valor) ? (PointF?)valor : null;
+            string identidade;
+            if (posicoes.TryGetValue(caminho, out valor))
+            {
+                identidade = IdentidadeImagem(caminho);
+                if (identidade != null) posicoesPorId[identidade] = valor;
+                return valor;
+            }
+            identidade = IdentidadeImagem(caminho);
+            return identidade != null && posicoesPorId.TryGetValue(identidade, out valor)
+                ? (PointF?)valor : null;
         }
 
         public void GuardarPosicao(string caminho, PointF valor)
         {
             posicoes[caminho] = valor;
+            string identidade = IdentidadeImagem(caminho);
+            if (identidade != null) posicoesPorId[identidade] = valor;
+        }
+
+        static string IdentidadeImagem(string caminho)
+        {
+            try
+            {
+                using (SHA256 sha = SHA256.Create())
+                using (FileStream arquivo = File.OpenRead(caminho))
+                    return Convert.ToBase64String(sha.ComputeHash(arquivo));
+            }
+            catch { return null; }
+        }
+
+        public void MarcarExibida(string caminho)
+        {
+            if (!ExibidasNaRodada.Exists(delegate(string p) {
+                return string.Equals(p, caminho, StringComparison.OrdinalIgnoreCase);
+            })) ExibidasNaRodada.Add(caminho);
+            for (int i = OrdemAleatoria.Count - 1; i >= 0; i--)
+                if (string.Equals(OrdemAleatoria[i], caminho,
+                    StringComparison.OrdinalIgnoreCase))
+                    OrdemAleatoria.RemoveAt(i);
         }
 
         public void LembrarPasta(string pasta)
@@ -345,7 +436,7 @@ namespace KaelithWall
         readonly NotifyIcon icone;
         readonly System.Windows.Forms.Timer relogio;
         readonly SynchronizationContext linhaPrincipal;
-        readonly Random sorte = new Random();
+        readonly RandomNumberGenerator sorte = RandomNumberGenerator.Create();
         readonly bool teste;   // em autoteste nao mexe no papel de parede de verdade
 
         List<string> ordem = new List<string>();
@@ -534,7 +625,7 @@ namespace KaelithWall
         {
             for (int i = lista.Count - 1; i > 0; i--)
             {
-                int j = sorte.Next(i + 1);
+                int j = Sortear(i + 1);
                 string t = lista[i]; lista[i] = lista[j]; lista[j] = t;
             }
             // Nao repetir de cara a imagem que acabou de sair.
@@ -544,9 +635,29 @@ namespace KaelithWall
             }
         }
 
+        int Sortear(int limite)
+        {
+            byte[] bytes = new byte[4];
+            uint teto = uint.MaxValue - (uint.MaxValue % (uint)limite);
+            uint valor;
+            do { sorte.GetBytes(bytes); valor = BitConverter.ToUInt32(bytes, 0); }
+            while (valor >= teto);
+            return (int)(valor % (uint)limite);
+        }
+
+        static int IndiceDe(List<string> lista, string caminho)
+        {
+            if (caminho == null) return -1;
+            for (int i = 0; i < lista.Count; i++)
+                if (string.Equals(lista[i], caminho, StringComparison.OrdinalIgnoreCase))
+                    return i;
+            return -1;
+        }
+
         void Varrer()
         {
             string atual = ArquivoAtual();
+            if (atual == null) atual = cfg.Atual;
             List<string> achados = new List<string>();
             erroUltimo = "";
             try
@@ -567,10 +678,53 @@ namespace KaelithWall
             catch (Exception e) { erroUltimo = "(erro ao ler a pasta: " + e.Message + ")"; }
 
             achados.Sort(new OrdemNatural());
-            if (cfg.Aleatorio) Embaralhar(achados, null);
+            if (cfg.Aleatorio)
+            {
+                HashSet<string> encontrados = new HashSet<string>(
+                    achados, StringComparer.OrdinalIgnoreCase);
+                HashSet<string> exibidas = new HashSet<string>(
+                    cfg.ExibidasNaRodada, StringComparer.OrdinalIgnoreCase);
+                exibidas.IntersectWith(encontrados);
 
-            ordem = achados;
-            pos = (atual != null) ? ordem.IndexOf(atual) : -1;
+                // Versoes antigas nao sabiam o que realmente chegou a tela. Comeca
+                // uma rodada verificavel usando o wallpaper atual como ponto zero.
+                if (!cfg.MemoriaExibicao ||
+                    (achados.Count > 0 && exibidas.Count >= achados.Count))
+                {
+                    exibidas.Clear();
+                    cfg.OrdemAleatoria.Clear();
+                    cfg.MemoriaExibicao = true;
+                    if (atual != null && encontrados.Contains(atual)) exibidas.Add(atual);
+                }
+
+                cfg.ExibidasNaRodada.Clear();
+                cfg.ExibidasNaRodada.AddRange(exibidas);
+                HashSet<string> incluidos = new HashSet<string>(
+                    StringComparer.OrdinalIgnoreCase);
+                List<string> preservada = new List<string>();
+                foreach (string p in cfg.OrdemAleatoria)
+                    if (encontrados.Contains(p) && !exibidas.Contains(p) &&
+                        incluidos.Add(p)) preservada.Add(p);
+
+                List<string> novos = new List<string>();
+                foreach (string p in achados)
+                    if (!exibidas.Contains(p) && incluidos.Add(p)) novos.Add(p);
+                Embaralhar(novos, null);
+                preservada.AddRange(novos);
+
+                cfg.OrdemAleatoria.Clear();
+                cfg.OrdemAleatoria.AddRange(preservada);
+                ordem = new List<string>();
+                if (atual != null && encontrados.Contains(atual) && exibidas.Contains(atual))
+                    ordem.Add(atual);
+                ordem.AddRange(preservada);
+                if (!teste) cfg.Salvar();
+            }
+            else
+            {
+                ordem = achados;
+            }
+            pos = IndiceDe(ordem, atual);
             if (pos < 0) pos = (ordem.Count > 0) ? 0 : -1;
         }
 
@@ -599,12 +753,24 @@ namespace KaelithWall
                 int novo = pos + passo;
                 if (novo >= ordem.Count || novo < 0)
                 {
-                    // Fim (ou inicio) do ciclo: revarre para pegar arquivos novos
-                    // e, no modo aleatorio, embaralha de novo.
+                    // Revarre antes da virada para incluir arquivos novos. No modo
+                    // aleatorio, uma nova rodada so nasce depois de esgotar a atual.
                     Varrer();
                     if (ordem.Count == 0) { Atualizar(); return; }
-                    if (cfg.Aleatorio) Embaralhar(ordem, saindo);
-                    pos = (passo > 0) ? 0 : ordem.Count - 1;
+                    pos = IndiceDe(ordem, saindo);
+                    novo = pos + passo;
+                    if (novo >= 0 && novo < ordem.Count)
+                    {
+                        pos = novo;
+                    }
+                    else
+                    {
+                        if (cfg.Aleatorio && passo > 0)
+                        {
+                            Varrer();
+                        }
+                        pos = (passo > 0) ? 0 : ordem.Count - 1;
+                    }
                 }
                 else
                 {
@@ -623,17 +789,32 @@ namespace KaelithWall
             string caminho = ArquivoAtual();
             if (string.IsNullOrEmpty(caminho)) return;
 
-            if (teste) { cfg.Atual = caminho; return; }
+            if (teste)
+            {
+                cfg.Atual = caminho;
+                cfg.MarcarExibida(caminho);
+                return;
+            }
 
             // A troca sai da linha principal: num JPEG grande o Windows pode
             // levar algumas centenas de milissegundos recodificando, e o menu
             // da bandeja nao pode congelar junto.
             if (!ReservarTroca(ref trocando, ref reaplicar)) return;
             int ajuste = cfg.Ajuste;
-            PointF? posicaoManual = cfg.PosicaoDe(caminho);
             ThreadPool.QueueUserWorkItem(delegate
             {
-                try { Definir(caminho, ajuste, posicaoManual); cfg.Atual = caminho; cfg.Salvar(); }
+                try
+                {
+                    PointF? posicaoManual;
+                    lock (cfg) { posicaoManual = cfg.PosicaoDe(caminho); }
+                    Definir(caminho, ajuste, posicaoManual);
+                    lock (cfg)
+                    {
+                        cfg.Atual = caminho;
+                        cfg.MarcarExibida(caminho);
+                        cfg.Salvar();
+                    }
+                }
                 catch (Exception e) { Avisar("(erro ao aplicar: " + e.Message + ")"); }
                 finally
                 {
@@ -787,6 +968,9 @@ namespace KaelithWall
         {
             if (cfg.Aleatorio == aleatorio) return;
             cfg.Aleatorio = aleatorio;
+            cfg.OrdemAleatoria.Clear();
+            cfg.ExibidasNaRodada.Clear();
+            cfg.MemoriaExibicao = false;
             if (!teste) cfg.Salvar();
             Varrer();   // reordena mantendo a imagem atual como ponto de partida
             Atualizar();
@@ -842,6 +1026,9 @@ namespace KaelithWall
             cfg.Pasta = pasta;
             cfg.LembrarPasta(pasta);
             cfg.Atual = "";
+            cfg.OrdemAleatoria.Clear();
+            cfg.ExibidasNaRodada.Clear();
+            cfg.MemoriaExibicao = false;
             cfg.Salvar();
             pos = -1;
             Varrer();
@@ -851,6 +1038,7 @@ namespace KaelithWall
         void Sair()
         {
             relogio.Stop();
+            sorte.Dispose();
             icone.Visible = false;
             icone.Dispose();
             ExitThread();
@@ -918,6 +1106,57 @@ namespace KaelithWall
             for (int i = 0; i < ordem.Count; i++)
                 if (ordem[i] != sequencial[i]) mexeu = true;
             checar(mexeu, "modo aleatorio realmente embaralha");
+
+            // Uma rodada usa todas as imagens uma vez e sobrevive a uma nova
+            // varredura (o equivalente a reiniciar o aplicativo).
+            pos = 0;
+            Dictionary<string, bool> rodada = new Dictionary<string, bool>(
+                StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < total; i++)
+            {
+                string p = ArquivoAtual();
+                if (p != null) rodada[p] = true;
+                if (i + 1 < total) Trocar(+1);
+            }
+            checar(rodada.Count == total,
+                   "modo aleatorio usa todas as imagens antes de repetir");
+            checar(cfg.ExibidasNaRodada.Count == total,
+                   "a rodada conta apenas imagens aplicadas com sucesso");
+            string ultimaDaRodada = ArquivoAtual();
+            Trocar(+1);
+            checar(ArquivoAtual() != ultimaDaRodada,
+                   "nova rodada nao repete imediatamente a ultima imagem");
+            string atualSalvo = ArquivoAtual();
+            cfg.Atual = atualSalvo;
+            int exibidasSalvas = cfg.ExibidasNaRodada.Count;
+            Varrer();
+            HashSet<string> jaExibidas = new HashSet<string>(
+                cfg.ExibidasNaRodada, StringComparer.OrdinalIgnoreCase);
+            bool retomou = ArquivoAtual() == atualSalvo &&
+                ordem.Count == 1 + total - exibidasSalvas;
+            for (int i = 1; retomou && i < ordem.Count; i++)
+                retomou = !jaExibidas.Contains(ordem[i]);
+            checar(retomou,
+                   "reabrir retoma apenas as imagens ainda nao exibidas na rodada");
+
+            string identidadeA = Path.GetTempFileName();
+            string identidadeB = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(identidadeA, "mesma imagem", Encoding.UTF8);
+                File.Copy(identidadeA, identidadeB, true);
+                Config memoriaImagem = new Config();
+                PointF posicaoImagem = new PointF(0.25f, 0.75f);
+                memoriaImagem.GuardarPosicao(identidadeA, posicaoImagem);
+                PointF? recuperada = memoriaImagem.PosicaoDe(identidadeB);
+                checar(recuperada.HasValue && recuperada.Value == posicaoImagem,
+                       "posicao manual acompanha a identidade da imagem mesmo em outro caminho");
+            }
+            finally
+            {
+                try { File.Delete(identidadeA); } catch { }
+                try { File.Delete(identidadeB); } catch { }
+            }
 
             // Pausa para e retoma o relogio.
             cfg.Pausado = false; Atualizar();

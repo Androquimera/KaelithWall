@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.1.1 — 30/10/2026
+
+### Corrigido
+
+- A ordem aleatória agora mantém uma rodada verificável: todas as imagens da
+  pasta são exibidas uma vez antes que qualquer uma possa se repetir.
+- A fila embaralhada e o conjunto de imagens já exibidas sobrevivem ao reinício
+  do aplicativo e às novas varreduras da pasta. Arquivos adicionados entram na
+  rodada atual sem jogar fora a sequência restante; arquivos removidos deixam
+  de bloquear o avanço.
+- O embaralhamento usa números aleatórios criptográficos sem viés de módulo,
+  evitando que novas execuções com sementes próximas produzam sequências
+  parecidas.
+- A posição manual passou a ser associada ao conteúdo da imagem, além do
+  caminho. Renomear, mover ou copiar o mesmo arquivo não perde mais o
+  enquadramento salvo.
+- O estado da rodada só marca uma imagem como exibida depois que ela é aplicada
+  com sucesso pelo Windows.
+
+### Alterado
+
+- Configurações antigas de posição são migradas automaticamente para a nova
+  identidade por conteúdo, sem apagar a compatibilidade pelo caminho.
+- A bateria `--autoteste` passou de 20 para 25 verificações, incluindo rodada
+  completa sem repetição, retomada após reinício e enquadramento preservado
+  entre caminhos diferentes.
+
 ## 1.1.0 — 28/10/2026
 
 ### Adicionado
