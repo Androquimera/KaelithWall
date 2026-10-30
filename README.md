@@ -130,10 +130,10 @@ O próprio executável carrega a bateria de testes dentro dele:
 ./Kwall.exe --autoteste
 ```
 
-São 25 verificações da lógica de verdade — varredura da pasta, ordenação
+São 26 verificações da lógica de verdade — varredura da pasta, ordenação
 natural, navegação, rodada aleatória persistente, pausa, intervalo, filtro de
 extensão, pastas recentes, memória de enquadramento pela identidade da imagem,
-orientação EXIF, modos de ajuste, enquadramento, cópia de pixels e reaplicação
+orientação EXIF, modos de ajuste, janela entre rodadas, enquadramento, cópia de pixels e reaplicação
 concorrente. Sai com código 0 se passou e 2 se falhou, e **não mexe no seu papel
 de parede** enquanto testa.
 

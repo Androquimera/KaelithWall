@@ -79,8 +79,8 @@ Run the built-in test suite with:
 ./Kwall.exe --autoteste
 ```
 
-The published build passes 25 checks covering folder scanning, natural order,
-navigation, persistent random rounds, recent folders, EXIF orientation, fit
+The current source passes 26 checks covering folder scanning, natural order,
+navigation, persistent random rounds, cross-round spacing, recent folders, EXIF orientation, fit
 modes, framing memory, pixel conversion, and concurrent reapplication. Test
 mode does not change the user's wallpaper.
 

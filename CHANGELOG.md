@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.1 — em desenvolvimento
+
+### Corrigido
+
+- A nova rodada agora mantém uma janela entre repetições: o quarto de imagens
+  visto mais recentemente é afastado do começo da rodada seguinte.
+- O histórico recente sobrevive ao reinício do aplicativo e é inicializado a
+  partir da rodada atual ao atualizar da versão 1.2.0.
+- A fila pendente da versão anterior é descartada uma única vez e recriada só
+  com as imagens ainda não exibidas, sem reiniciar a rodada.
+
+### Verificado
+
+- A fila atual continua sem repetições: cada caminho aparece uma única vez por
+  rodada, e a ordem restante não apresenta progressão pela ordem da pasta.
+
 ## 1.2.0 — 30/10/2026
 
 ### Alterado

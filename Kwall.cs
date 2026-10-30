@@ -24,9 +24,9 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Kwall")]
 [assembly: AssemblyProduct("Kwall")]
 [assembly: AssemblyDescription("Trocador leve de papel de parede para Windows")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
-[assembly: AssemblyInformationalVersion("1.2.0")]
+[assembly: AssemblyVersion("1.2.1.0")]
+[assembly: AssemblyFileVersion("1.2.1.0")]
+[assembly: AssemblyInformationalVersion("1.2.1")]
 
 namespace Kwall
 {
@@ -93,10 +93,12 @@ namespace Kwall
         public int Ajuste = Kwall.Ajuste.Preencher;
         public string Atual = "";
         public bool MemoriaExibicao = false;
+        public int VersaoRandomizacao = 0;
         public bool PosicoesIdentificadas = false;
         public readonly List<string> PastasRecentes = new List<string>();
         public readonly List<string> OrdemAleatoria = new List<string>();
         public readonly List<string> ExibidasNaRodada = new List<string>();
+        public readonly List<string> HistoricoRecente = new List<string>();
         readonly Dictionary<string, PointF> posicoes =
             new Dictionary<string, PointF>(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, PointF> posicoesPorId =
@@ -155,6 +157,7 @@ namespace Kwall
                         case "ajuste": int.TryParse(valor, out c.Ajuste); break;
                         case "atual": c.Atual = valor; break;
                         case "memoria_exibicao": c.MemoriaExibicao = (valor == "1"); break;
+                        case "randomizacao": int.TryParse(valor, out c.VersaoRandomizacao); break;
                         case "posicoes_identificadas":
                             c.PosicoesIdentificadas = (valor == "1"); break;
                         case "ordem_aleatoria":
@@ -169,6 +172,14 @@ namespace Kwall
                             try
                             {
                                 c.ExibidasNaRodada.Add(Encoding.UTF8.GetString(
+                                    Convert.FromBase64String(valor)));
+                            }
+                            catch { }
+                            break;
+                        case "recente":
+                            try
+                            {
+                                c.HistoricoRecente.Add(Encoding.UTF8.GetString(
                                     Convert.FromBase64String(valor)));
                             }
                             catch { }
@@ -210,6 +221,13 @@ namespace Kwall
             }
             catch { }
             if (c.Intervalo < 5) c.Intervalo = 5;
+            if (c.VersaoRandomizacao < 2)
+            {
+                c.OrdemAleatoria.Clear();
+                c.VersaoRandomizacao = 2;
+            }
+            if (c.HistoricoRecente.Count == 0)
+                c.HistoricoRecente.AddRange(c.ExibidasNaRodada);
             if (!string.IsNullOrEmpty(c.Pasta)) c.LembrarPasta(c.Pasta);
             if (!c.PosicoesIdentificadas)
             {
@@ -236,6 +254,7 @@ namespace Kwall
                 sb.AppendLine("ajuste=" + Ajuste.ToString());
                 sb.AppendLine("atual=" + Atual);
                 sb.AppendLine("memoria_exibicao=" + (MemoriaExibicao ? "1" : "0"));
+                sb.AppendLine("randomizacao=" + VersaoRandomizacao.ToString());
                 sb.AppendLine("posicoes_identificadas=" +
                     (PosicoesIdentificadas ? "1" : "0"));
                 foreach (string arquivo in OrdemAleatoria)
@@ -243,6 +262,9 @@ namespace Kwall
                         Encoding.UTF8.GetBytes(arquivo)));
                 foreach (string arquivo in ExibidasNaRodada)
                     sb.AppendLine("exibida=" + Convert.ToBase64String(
+                        Encoding.UTF8.GetBytes(arquivo)));
+                foreach (string arquivo in HistoricoRecente)
+                    sb.AppendLine("recente=" + Convert.ToBase64String(
                         Encoding.UTF8.GetBytes(arquivo)));
                 foreach (string pasta in PastasRecentes)
                     sb.AppendLine("pasta_recente=" + Convert.ToBase64String(
@@ -305,6 +327,12 @@ namespace Kwall
                 if (string.Equals(OrdemAleatoria[i], caminho,
                     StringComparison.OrdinalIgnoreCase))
                     OrdemAleatoria.RemoveAt(i);
+            for (int i = HistoricoRecente.Count - 1; i >= 0; i--)
+                if (string.Equals(HistoricoRecente[i], caminho,
+                    StringComparison.OrdinalIgnoreCase))
+                    HistoricoRecente.RemoveAt(i);
+            HistoricoRecente.Add(caminho);
+            while (HistoricoRecente.Count > 512) HistoricoRecente.RemoveAt(0);
         }
 
         public void LembrarPasta(string pasta)
@@ -656,6 +684,27 @@ namespace Kwall
             }
         }
 
+        static void AfastarRecentesDoInicio(List<string> lista, List<string> historico)
+        {
+            int alvo = lista.Count / 4;
+            if (alvo == 0 || historico.Count == 0) return;
+            HashSet<string> disponiveis = new HashSet<string>(
+                lista, StringComparer.OrdinalIgnoreCase);
+            HashSet<string> recentes = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+            for (int i = historico.Count - 1; i >= 0 && recentes.Count < alvo; i--)
+                if (disponiveis.Contains(historico[i])) recentes.Add(historico[i]);
+            int janela = recentes.Count;
+            for (int i = 0; i < janela; i++)
+            {
+                if (!recentes.Contains(lista[i])) continue;
+                int troca = janela;
+                while (troca < lista.Count && recentes.Contains(lista[troca])) troca++;
+                if (troca >= lista.Count) break;
+                string temporario = lista[i]; lista[i] = lista[troca]; lista[troca] = temporario;
+            }
+        }
+
         int Sortear(int limite)
         {
             byte[] bytes = new byte[4];
@@ -701,6 +750,7 @@ namespace Kwall
             achados.Sort(new OrdemNatural());
             if (cfg.Aleatorio)
             {
+                bool novaRodada = false;
                 HashSet<string> encontrados = new HashSet<string>(
                     achados, StringComparer.OrdinalIgnoreCase);
                 HashSet<string> exibidas = new HashSet<string>(
@@ -715,6 +765,7 @@ namespace Kwall
                     exibidas.Clear();
                     cfg.OrdemAleatoria.Clear();
                     cfg.MemoriaExibicao = true;
+                    novaRodada = true;
                     if (atual != null && encontrados.Contains(atual)) exibidas.Add(atual);
                 }
 
@@ -731,6 +782,7 @@ namespace Kwall
                 foreach (string p in achados)
                     if (!exibidas.Contains(p) && incluidos.Add(p)) novos.Add(p);
                 Embaralhar(novos, null);
+                if (novaRodada) AfastarRecentesDoInicio(novos, cfg.HistoricoRecente);
                 preservada.AddRange(novos);
 
                 cfg.OrdemAleatoria.Clear();
@@ -1146,6 +1198,17 @@ namespace Kwall
             for (int i = 0; i < ordem.Count; i++)
                 if (ordem[i] != sequencial[i]) mexeu = true;
             checar(mexeu, "modo aleatorio realmente embaralha");
+
+            List<string> ordemComRecentes = new List<string>();
+            List<string> historicoRecente = new List<string>();
+            for (int i = 0; i < 20; i++) ordemComRecentes.Add("imagem-" + i);
+            historicoRecente.AddRange(ordemComRecentes.GetRange(0, 5));
+            AfastarRecentesDoInicio(ordemComRecentes, historicoRecente);
+            bool afastouRecentes = true;
+            for (int i = 0; i < 5; i++)
+                afastouRecentes = afastouRecentes && !historicoRecente.Contains(ordemComRecentes[i]);
+            checar(afastouRecentes,
+                   "nova rodada afasta imagens vistas recentemente do inicio");
 
             // Uma rodada usa todas as imagens uma vez e sobrevive a uma nova
             // varredura (o equivalente a reiniciar o aplicativo).
