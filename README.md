@@ -1,10 +1,36 @@
-# KaelithWall
+<p align="center">
+  <img src="logo.webp" alt="Logo do Kwall" width="180">
+</p>
+
+<h1 align="center">Kwall</h1>
+
+<p align="center"><strong>Sua coleção inteira. Antes de repetir.</strong></p>
+
+<p align="center">
+  <a href="README.md">Português</a> ·
+  <a href="README.en.md">English</a> ·
+  <a href="https://github.com/Androquimera/Kwall/releases/latest"><strong>Baixar versão atual</strong></a>
+</p>
+
+<p align="center">
+  <img alt="Última versão" src="https://img.shields.io/github/v/release/Androquimera/Kwall?style=flat-square&color=356bc4">
+  <img alt="Licença MIT" src="https://img.shields.io/github/license/Androquimera/Kwall?style=flat-square&color=173a6f">
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%7C%2011-4b86e8?style=flat-square">
+</p>
 
 Troca o papel de parede do Windows a partir de uma pasta sua, sem pesar na
 máquina.
 
 Um executável portátil, sem instalador, sem dependência e sem serviço em
 segundo plano. Fica como um ícone na bandeja do sistema enquanto trabalha.
+
+## Por que existe
+
+O Kwall nasceu porque o gerenciamento de wallpapers do Windows resetava
+configurações sem explicação, oferecia pouco controle sobre o enquadramento e
+acabava voltando a sequências reconhecíveis mesmo no modo aleatório. A proposta
+é simples: manter o estado de forma confiável, dar controle por imagem e tratar
+a pasta inteira como uma rodada antes de repetir qualquer arquivo.
 
 ---
 
@@ -41,7 +67,7 @@ novo.
 Formatos: JPG, JPEG, JFIF, PNG, BMP, GIF, TIF, TIFF e DIB.
 
 O modo **Preencher** parte do mesmo enquadramento central mostrado no editor
-manual. Quando você ajusta uma imagem, o KaelithWall lembra a posição só para
+manual. Quando você ajusta uma imagem, o Kwall lembra a posição só para
 ela e reutiliza o enquadramento nas próximas vezes, mesmo se o arquivo for
 renomeado, movido ou copiado para outra pasta.
 
@@ -52,7 +78,7 @@ renomeado, movido ou copiado para outra pasta.
 A próxima imagem é decodificada e gravada em um BMP completo numa thread
 separada antes da troca. O wallpaper anterior continua aplicado durante essa
 preparação. Arquivos ilegíveis são rejeitados antes de alterar o wallpaper.
-Dois arquivos de cache em `%LOCALAPPDATA%\KaelithWall` evitam sobrescrever
+Dois arquivos de cache em `%LOCALAPPDATA%\Kwall` evitam sobrescrever
 a imagem aplicada. Isso usa memória e disco durante a troca; as medições de
 consumo da implementação anterior precisam ser refeitas.
 
@@ -63,9 +89,9 @@ não são ampliadas em 33,33% — e respeita a orientação EXIF gravada pela c�
 
 ## Instalar
 
-1. Baixe o executável da [versão mais recente](https://github.com/Androquimera/KaelithWall/releases/latest)
+1. Baixe o executável da [versão mais recente](https://github.com/Androquimera/Kwall/releases/latest)
 2. Coloque numa pasta que você vá manter, por exemplo
-   `C:\Users\<você>\Programas\KaelithWall`
+   `C:\Users\<você>\Programas\Kwall`
 3. Execute. Na primeira vez ele pergunta qual pasta de imagens usar.
 
 Não tem instalador e não escreve nada no registro além da própria configuração
@@ -77,14 +103,14 @@ e coloque um atalho do executável na pasta que abrir.
 
 ### Onde ficam as configurações
 
-Em `%APPDATA%\KaelithWall\config.txt`, um arquivo de texto comum, uma opção por
+Em `%APPDATA%\Kwall\config.txt`, um arquivo de texto comum, uma opção por
 linha. Dá para editar à mão se preferir.
 
 ---
 
 ## Compilar do código
 
-O KaelithWall é **um único arquivo de C#**, e compila com o compilador que já
+O Kwall é **um único arquivo de C#**, e compila com o compilador que já
 vem dentro do Windows, em `C:\Windows\Microsoft.NET\Framework64\v4.0.30319`.
 Não precisa instalar Visual Studio, nem SDK, nem pacote nenhum:
 
@@ -101,7 +127,7 @@ quando ela deu certo.
 O próprio executável carrega a bateria de testes dentro dele:
 
 ```sh
-./KaelithWall.exe --autoteste
+./Kwall.exe --autoteste
 ```
 
 São 25 verificações da lógica de verdade — varredura da pasta, ordenação
@@ -129,11 +155,11 @@ Duas coisas ali não são óbvias e vale deixar registrado:
 
 ## Gostou? Me ajuda a continuar
 
-O KaelithWall é **gratuito e vai continuar gratuito**. Sem anúncio, sem versão
+O Kwall é **gratuito e vai continuar gratuito**. Sem anúncio, sem versão
 paga, sem telemetria, sem conta para criar. Ele não acessa a internet.
 
 Eu escrevo esses programas sozinho, e qualquer ajuda faz diferença real aqui.
-Se o KaelithWall te poupou tempo ou irritação, e você puder e quiser
+Se o Kwall te poupou tempo ou irritação, e você puder e quiser
 contribuir:
 
 **Pix:** `4bb64518-21fb-4b72-b587-ea363ab38aa2`

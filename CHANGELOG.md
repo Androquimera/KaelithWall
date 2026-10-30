@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.0 — 30/10/2026
+
+### Alterado
+
+- O aplicativo, executável, código-fonte, repositório e releases agora usam o
+  nome **Kwall**.
+- A configuração é movida de `%APPDATA%\KaelithWall` para `%APPDATA%\Kwall` na
+  primeira execução. O cache antigo é removido depois que o novo wallpaper é
+  aplicado com sucesso; nenhuma cópia de rollback é mantida.
+- Nova vitrine bilíngue e responsiva, com demonstrações animadas e interativas
+  da rodada sem repetição e do enquadramento manual.
+
+### Compatibilidade
+
+- O Kwall ainda reconhece a instância do nome antigo durante a transição para
+  impedir dois trocadores de wallpaper simultâneos.
+
 ## 1.1.1 — 30/10/2026
 
 ### Corrigido

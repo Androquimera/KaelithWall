@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173a6f">
+  <meta name="description" content="Kwall troca seus wallpapers sem repetir antes de mostrar todos e lembra o enquadramento de cada imagem.">
+  <meta property="og:title" content="Kwall — cada imagem, antes de qualquer repetição">
+  <meta property="og:description" content="Trocador de wallpaper portátil para Windows. Sem conta, anúncios ou telemetria.">
+  <meta property="og:image" content="https://androquimera.github.io/Kwall/assets/logo.webp">
+  <meta property="og:type" content="website">
+  <title>Kwall — sua coleção inteira em movimento</title>
+  <link rel="icon" href="assets/logo.webp" type="image/webp">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!--
+  THESIS: a pilha de imagens demonstra o ciclo e recusa o hero SaaS genérico.
+  OWN-WORLD: azul Windows, papel branco, sol amarelo e fotografias sobrepostas.
+  STORY: entender a rodada, confiar na memória de enquadramento e baixar.
+  FIRST VIEWPORT: promessa e CTA à esquerda; pilha orbital dominante à direita.
+  FORM: protagonista recorrente em quatro estados; conceito c781beda, estrutura 7.
+  -->
+  <a class="skip-link" href="#conteudo">
+    <span class="lang-pt">Pular para o conteúdo</span>
+    <span class="lang-en">Skip to content</span>
+  </a>
+
+  <header class="site-header">
+    <a class="brand" href="#topo" aria-label="Kwall — início">
+      <img src="assets/logo.webp" alt="" width="42" height="42">
+      <span>Kwall</span>
+    </a>
+    <nav aria-label="Navegação principal">
+      <a href="#como-funciona">
+        <span class="lang-pt">Como funciona</span><span class="lang-en">How it works</span>
+      </a>
+      <a href="#confianca">
+        <span class="lang-pt">Por dentro</span><span class="lang-en">Under the hood</span>
+      </a>
+      <a href="https://github.com/Androquimera/Kwall" rel="noreferrer">GitHub</a>
+      <button class="language-toggle" type="button" aria-label="Switch to English" aria-pressed="false">
+        <span aria-hidden="true">PT</span><span class="toggle-track"><span></span></span><span aria-hidden="true">EN</span>
+      </button>
+    </nav>
+  </header>
+
+  <main id="conteudo">
+    <section class="hero" id="topo" data-observe="hero">
+      <div class="hero-copy">
+        <p class="signal"><span></span><span class="lang-pt">GRATUITO · PORTÁTIL · WINDOWS</span><span class="lang-en">FREE · PORTABLE · WINDOWS</span></p>
+        <h1>
+          <span class="lang-pt">Sua coleção inteira.<br><em>Antes de repetir.</em></span>
+          <span class="lang-en">Your whole collection.<br><em>Before a repeat.</em></span>
+        </h1>
+        <p class="hero-lede lang-pt">O Kwall troca seus wallpapers, percorre todas as imagens antes de começar outra rodada e lembra exatamente como você enquadrou cada uma.</p>
+        <p class="hero-lede lang-en">Kwall rotates your wallpapers, shows every image before starting another round, and remembers exactly how you framed each one.</p>
+        <div class="hero-actions">
+          <a class="button button-primary download-link" href="https://github.com/Androquimera/Kwall/releases/latest">
+            <span class="button-icon" aria-hidden="true">↓</span>
+            <span><strong class="lang-pt">Baixar para Windows</strong><strong class="lang-en">Download for Windows</strong><small class="release-label">v1.2.0 · EXE portátil</small></span>
+          </a>
+          <a class="button button-text" href="https://github.com/Androquimera/Kwall" rel="noreferrer">
+            <span class="lang-pt">Ver código-fonte</span><span class="lang-en">View source</span><span aria-hidden="true">↗</span>
+          </a>
+        </div>
+        <ul class="trust-line" aria-label="Características principais">
+          <li><span aria-hidden="true">✓</span><span class="lang-pt">Sem instalador</span><span class="lang-en">No installer</span></li>
+          <li><span aria-hidden="true">✓</span><span class="lang-pt">Sem telemetria</span><span class="lang-en">No telemetry</span></li>
+          <li><span aria-hidden="true">✓</span>MIT</li>
+        </ul>
+      </div>
+
+      <div class="visual-stage interactive-visual" role="button" tabindex="0" aria-label="Embaralhar a pilha de wallpapers" aria-pressed="false" data-stage="0">
+        <div class="orbit orbit-a" aria-hidden="true"></div>
+        <div class="orbit orbit-b" aria-hidden="true"></div>
+        <div class="photo photo-back" aria-hidden="true"><div class="wallpaper aurora"></div><span>03</span></div>
+        <div class="photo photo-mid" aria-hidden="true"><div class="wallpaper dusk"></div><span>02</span></div>
+        <div class="photo photo-front">
+          <div class="wallpaper alpine"><i></i><b></b></div>
+          <span aria-hidden="true">01</span>
+          <div class="frame-guide" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <img class="logo-mark" src="assets/logo.webp" alt="Logo do Kwall" width="210" height="210">
+        <div class="round-counter" aria-live="polite">
+          <span class="counter-number">1 / 4</span>
+          <span class="counter-copy lang-pt">rodada sem repetição</span>
+          <span class="counter-copy lang-en">no-repeat round</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="origin">
+      <div class="origin-heading">
+        <p class="chapter lang-pt">POR QUE ELE EXISTE</p><p class="chapter lang-en">WHY IT EXISTS</p>
+        <h2 class="lang-pt">O Windows esquecia.<br>O shuffle insistia.</h2>
+        <h2 class="lang-en">Windows kept forgetting.<br>Shuffle kept insisting.</h2>
+        <p class="lang-pt">O Kwall nasceu depois de bater sempre nos mesmos limites do gerenciador nativo — e decidir que wallpaper não deveria ser uma configuração frágil.</p>
+        <p class="lang-en">Kwall was born after hitting the same limits of the built-in manager — and deciding that wallpaper should not be a fragile setting.</p>
+      </div>
+      <div class="frictions">
+        <article>
+          <span class="friction-mark" aria-hidden="true">↺</span>
+          <div><strong class="lang-pt">Configurações que resetavam</strong><strong class="lang-en">Settings that reset themselves</strong>
+          <p class="lang-pt">O Windows mudava ou esquecia escolhas sem uma razão clara.</p><p class="lang-en">Windows changed or forgot choices without a clear reason.</p></div>
+        </article>
+        <article>
+          <span class="friction-mark" aria-hidden="true">⌗</span>
+          <div><strong class="lang-pt">Pouco controle da imagem</strong><strong class="lang-en">Too little control over the image</strong>
+          <p class="lang-pt">Os ajustes disponíveis não deixavam cada wallpaper no enquadramento certo.</p><p class="lang-en">The available fit modes could not leave every wallpaper framed correctly.</p></div>
+        </article>
+        <article>
+          <span class="friction-mark" aria-hidden="true">⤨</span>
+          <div><strong class="lang-pt">Um shuffle com memória ruim</strong><strong class="lang-en">A shuffle with the wrong kind of memory</strong>
+          <p class="lang-pt">As mesmas sequências voltavam tanto que o aleatório deixava de parecer aleatório.</p><p class="lang-en">The same sequences returned so often that random stopped feeling random.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="story" id="como-funciona">
+      <div class="story-visual interactive-visual" role="button" tabindex="0" aria-label="Embaralhar esta rodada de imagens" aria-pressed="false">
+        <div class="mini-stack">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="progress-orbit"><span></span></div>
+      </div>
+      <div class="story-copy" data-observe="round">
+        <p class="chapter lang-pt">UMA RODADA DE VERDADE</p><p class="chapter lang-en">A REAL ROUND</p>
+        <h2 class="lang-pt">Aleatório não precisa significar repetitivo.</h2>
+        <h2 class="lang-en">Random does not have to mean repetitive.</h2>
+        <p class="lang-pt">A fila é embaralhada inteira. Uma imagem só volta depois que todas as outras aparecerem — mesmo que você feche o aplicativo ou acrescente arquivos à pasta.</p>
+        <p class="lang-en">The whole queue is shuffled. An image only comes back after every other one has appeared — even if you close the app or add files to the folder.</p>
+        <div class="proof-row">
+          <span class="proof-value">100%</span>
+          <span class="lang-pt">da pasta em cada rodada</span><span class="lang-en">of the folder in every round</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="story story-reverse">
+      <div class="crop-demo interactive-visual" role="group" tabindex="0" aria-label="Demonstração interativa: arraste a imagem ou use as setas">
+        <div class="crop-image alpine"><i></i><b></b></div>
+        <div class="crop-window"><i></i><i></i><i></i><i></i><span>↔</span></div>
+        <p aria-live="polite" aria-atomic="true">0.36 × 0.58</p>
+      </div>
+      <div class="story-copy" data-observe="frame">
+        <p class="chapter lang-pt">O SEU ENQUADRAMENTO</p><p class="chapter lang-en">YOUR FRAMING</p>
+        <h2 class="lang-pt">Você posiciona uma vez. Ele lembra da imagem.</h2>
+        <h2 class="lang-en">Frame it once. It remembers the image.</h2>
+        <p class="lang-pt">Arraste o wallpaper até o ponto certo. A posição fica ligada ao conteúdo da imagem e continua valendo se o arquivo for renomeado, movido ou copiado.</p>
+        <p class="lang-en">Drag the wallpaper into place. Its position stays tied to the image itself, even when the file is renamed, moved, or copied.</p>
+      </div>
+    </section>
+
+    <section class="under-hood" id="confianca" data-observe="trust">
+      <div class="code-strip" aria-hidden="true">
+        <span>LOCAL</span><span>MIT</span><span>25/25</span><span>SHA-256</span><span>LOCAL</span>
+      </div>
+      <div class="under-copy">
+        <p class="chapter lang-pt">FEITO PARA DESAPARECER</p><p class="chapter lang-en">BUILT TO STAY OUT OF THE WAY</p>
+        <h2 class="lang-pt">Um ícone na bandeja.<br>Nenhuma conta no caminho.</h2>
+        <h2 class="lang-en">One tray icon.<br>No account in the way.</h2>
+        <p class="lang-pt">O Kwall não acessa a internet, não mostra anúncios e não envia telemetria. As configurações ficam em um arquivo de texto no seu computador.</p>
+        <p class="lang-en">Kwall does not access the internet, show ads, or send telemetry. Settings stay in a plain text file on your computer.</p>
+      </div>
+      <dl class="facts">
+        <div><dt>25 / 25</dt><dd class="lang-pt">autotestes no build publicado</dd><dd class="lang-en">self-tests in the published build</dd></div>
+        <div><dt>MIT</dt><dd class="lang-pt">código aberto e auditável</dd><dd class="lang-en">open and auditable source</dd></div>
+        <div><dt>.EXE</dt><dd class="lang-pt">um arquivo portátil</dd><dd class="lang-en">one portable file</dd></div>
+      </dl>
+    </section>
+
+    <section class="final-cta" data-observe="download">
+      <img class="interactive-logo" src="assets/logo.webp" alt="Logo interativo do Kwall" role="button" tabindex="0" aria-label="Animar o logo do Kwall" width="190" height="190">
+      <div>
+        <p class="chapter lang-pt">A PRÓXIMA IMAGEM ESTÁ PRONTA</p><p class="chapter lang-en">THE NEXT IMAGE IS READY</p>
+        <h2 class="lang-pt">Coloque sua coleção em movimento.</h2>
+        <h2 class="lang-en">Put your collection in motion.</h2>
+        <p class="lang-pt">Gratuito, portátil e sem pegadinha. Baixe, escolha uma pasta e deixe o Kwall trabalhar.</p>
+        <p class="lang-en">Free, portable, and straightforward. Download it, choose a folder, and let Kwall work.</p>
+      </div>
+      <a class="button button-primary download-link" href="https://github.com/Androquimera/Kwall/releases/latest">
+        <span class="button-icon" aria-hidden="true">↓</span>
+        <span><strong class="lang-pt">Baixar versão atual</strong><strong class="lang-en">Download latest release</strong><small class="release-label">v1.2.0 · EXE portátil</small></span>
+      </a>
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand" href="#topo"><img src="assets/logo.webp" alt="" width="34" height="34"><span>Kwall</span></a>
+    <p><span class="lang-pt">Feito por Androquimera. Código aberto sob licença MIT.</span><span class="lang-en">Made by Androquimera. Open source under the MIT License.</span></p>
+    <div><a href="https://github.com/Androquimera/Kwall/releases">Releases</a><a href="https://github.com/Androquimera/Kwall/blob/master/LICENSE">License</a><a href="https://github.com/Androquimera/Kwall/issues">Issues</a></div>
+  </footer>
+
+  <noscript><p class="noscript">A página funciona sem JavaScript; a detecção automática da release e as animações ficam desativadas.</p></noscript>
+  <script src="app.js" defer></script>
+</body>
+</html>

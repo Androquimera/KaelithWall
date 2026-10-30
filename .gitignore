@@ -2,6 +2,5 @@
 *.exe
 autoteste.txt
 
-# Gerados pelo fazer_ico.py a partir de logo.webp
-*.ico
+# Previa gerada pelo fazer_ico.py; os .ico de build ficam versionados.
 previa_icone.png

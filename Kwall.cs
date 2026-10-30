@@ -1,4 +1,4 @@
-﻿// KaelithWall -- trocador de papel de parede leve.
+﻿// Kwall -- trocador de papel de parede leve.
 //
 // Prepara um BMP completo antes de pedir ao Windows a troca do wallpaper.
 // A imagem anterior permanece aplicada durante a preparacao.
@@ -21,14 +21,14 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyTitle("KaelithWall")]
-[assembly: AssemblyProduct("KaelithWall")]
+[assembly: AssemblyTitle("Kwall")]
+[assembly: AssemblyProduct("Kwall")]
 [assembly: AssemblyDescription("Trocador leve de papel de parede para Windows")]
-[assembly: AssemblyVersion("1.1.1.0")]
-[assembly: AssemblyFileVersion("1.1.1.0")]
-[assembly: AssemblyInformationalVersion("1.1.1")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyInformationalVersion("1.2.0")]
 
-namespace KaelithWall
+namespace Kwall
 {
     static class Nativo
     {
@@ -90,7 +90,7 @@ namespace KaelithWall
         public bool Aleatorio = true;
         public bool Pausado = false;
         public bool Subpastas = false;
-        public int Ajuste = KaelithWall.Ajuste.Preencher;
+        public int Ajuste = Kwall.Ajuste.Preencher;
         public string Atual = "";
         public bool MemoriaExibicao = false;
         public bool PosicoesIdentificadas = false;
@@ -104,11 +104,32 @@ namespace KaelithWall
 
         static string Caminho()
         {
-            string dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "KaelithWall");
+            string raiz = Environment.GetFolderPath(
+                Environment.SpecialFolder.ApplicationData);
+            string dir = Path.Combine(raiz, "Kwall");
             Directory.CreateDirectory(dir);
-            return Path.Combine(dir, "config.txt");
+            string atual = Path.Combine(dir, "config.txt");
+            string dirAntigo = Path.Combine(raiz, "KaelithWall");
+            string antigo = Path.Combine(dirAntigo, "config.txt");
+            if (!File.Exists(atual) && File.Exists(antigo))
+            {
+                try { File.Move(antigo, atual); }
+                catch
+                {
+                    File.Copy(antigo, atual, false);
+                    File.Delete(antigo);
+                }
+            }
+            if (File.Exists(atual) && File.Exists(antigo))
+                File.Delete(antigo);
+            try
+            {
+                if (Directory.Exists(dirAntigo) &&
+                    Directory.GetFileSystemEntries(dirAntigo).Length == 0)
+                    Directory.Delete(dirAntigo);
+            }
+            catch { }
+            return atual;
         }
 
         public static Config Carregar()
@@ -458,7 +479,7 @@ namespace KaelithWall
 
             icone = new NotifyIcon();
             icone.Icon = CriarIcone();
-            icone.Text = "KaelithWall";
+            icone.Text = "Kwall";
             icone.Visible = !teste;
             icone.DoubleClick += delegate { Trocar(+1); };
             icone.ContextMenuStrip = MontarMenu();
@@ -600,7 +621,7 @@ namespace KaelithWall
                 if (mi != null) mi.Checked = ((int)mi.Tag == cfg.Ajuste);
             }
 
-            string dica = "KaelithWall" + (cfg.Pausado ? " (pausado)" : "");
+            string dica = "Kwall" + (cfg.Pausado ? " (pausado)" : "");
             if (!string.IsNullOrEmpty(nome)) dica += "\n" + Path.GetFileName(nome);
             if (dica.Length > 63) dica = dica.Substring(0, 63);
             icone.Text = dica;
@@ -842,7 +863,7 @@ namespace KaelithWall
         {
             // Dois slots: nunca sobrescrever o arquivo que o Windows esta exibindo.
             string dir = Path.Combine(Environment.GetFolderPath(
-                Environment.SpecialFolder.LocalApplicationData), "KaelithWall");
+                Environment.SpecialFolder.LocalApplicationData), "Kwall");
             Directory.CreateDirectory(dir);
             string anterior;
             using (RegistryKey desktop = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop"))
@@ -893,6 +914,25 @@ namespace KaelithWall
                 Nativo.SPI_SETDESKWALLPAPER, 0, pronto,
                 Nativo.SPIF_UPDATEINIFILE | Nativo.SPIF_SENDCHANGE))
                 throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            LimparCacheLegado();
+        }
+
+        static void LimparCacheLegado()
+        {
+            string antigo = Path.Combine(Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData), "KaelithWall");
+            try
+            {
+                foreach (string nome in new string[] { "wallpaper-0.bmp", "wallpaper-1.bmp" })
+                {
+                    string arquivo = Path.Combine(antigo, nome);
+                    if (File.Exists(arquivo)) File.Delete(arquivo);
+                }
+                if (Directory.Exists(antigo) &&
+                    Directory.GetFileSystemEntries(antigo).Length == 0)
+                    Directory.Delete(antigo);
+            }
+            catch { }
         }
 
         static RotateFlipType RotacaoExif(int orientacao)
@@ -1238,7 +1278,7 @@ namespace KaelithWall
             {
                 using (Stream fluxo = System.Reflection.Assembly
                            .GetExecutingAssembly()
-                           .GetManifestResourceStream("KaelithWall.icone"))
+                           .GetManifestResourceStream("Kwall.icone"))
                 {
                     if (fluxo != null)
                         return new Icon(fluxo, SystemInformation.SmallIconSize);
@@ -1299,9 +1339,11 @@ namespace KaelithWall
             }
 
             bool primeira;
-            using (Mutex trava = new Mutex(true, "KaelithWall_instancia_unica", out primeira))
+            bool primeiraLegada;
+            using (Mutex travaLegada = new Mutex(true, "KaelithWall_instancia_unica", out primeiraLegada))
+            using (Mutex trava = new Mutex(true, "Kwall_instancia_unica", out primeira))
             {
-                if (!primeira) return 0;
+                if (!primeira || !primeiraLegada) return 0;
                 Application.Run(new Bandeja());
             }
             return 0;

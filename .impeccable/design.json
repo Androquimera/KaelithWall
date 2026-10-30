@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T09:47:14-03:00",
+  "title": "Design System: Kwall",
+  "extensions": {
+    "colorMeta": {
+      "blue-deep": {
+        "role": "primary",
+        "displayName": "Azul Windows profundo",
+        "tonalRamp": ["#071329", "#0d2447", "#173a6f", "#28558f", "#4774aa", "#7498c3", "#aec3de", "#e9f0f8"]
+      },
+      "blue-action": {
+        "role": "accent",
+        "displayName": "Azul de ação",
+        "tonalRamp": ["#07172e", "#123263", "#234f94", "#356bc4", "#5a88d1", "#86a9df", "#b9cbed", "#edf2fb"]
+      },
+      "sun": {
+        "role": "focus",
+        "displayName": "Sol de conclusão",
+        "tonalRamp": ["#2c2107", "#59440f", "#8b6e21", "#bd9a40", "#f6ca69", "#f9da91", "#fbe9ba", "#fff8e9"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel frio",
+        "tonalRamp": ["#18202c", "#303b49", "#526171", "#7e8b99", "#aeb8c4", "#d4dbe3", "#e8edf3", "#f4f7fb"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Promessa principal e números de rodada." },
+      "body": { "displayName": "Corpo", "purpose": "Explicação funcional sem atrito." }
+    },
+    "shadows": [
+      { "name": "photo-stack", "value": "18px 24px 55px rgba(14,40,79,.2), 4px 7px 16px rgba(14,40,79,.12)", "purpose": "Explica a ordem física das fotografias." },
+      { "name": "button-offset", "value": "8px 10px 0 #173a6f", "purpose": "Dá peso ao único CTA primário." }
+    ],
+    "motion": [
+      { "name": "ease-orbit", "value": "cubic-bezier(.16,1,.3,1)", "purpose": "Movimento elástico curto das pilhas e do editor." },
+      { "name": "reduced-motion", "value": "0.01ms, one iteration", "purpose": "Mantém o estado final sem movimento contínuo quando solicitado pelo sistema." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "960px" },
+      { "name": "mobile", "value": "600px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary download button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "CTA principal de download, com versão e formato na segunda linha.",
+      "html": "<a class=\"ds-download\" href=\"#\"><span aria-hidden=\"true\">↓</span><span><strong>Baixar para Windows</strong><small>v1.2.0 · EXE portátil</small></span></a>",
+      "css": ".ds-download{display:inline-flex;align-items:center;gap:.8rem;min-height:58px;padding:12px 22px;border-radius:10px;background:#356bc4;color:#fff;text-decoration:none;font:700 16px 'Segoe UI',sans-serif;box-shadow:8px 10px 0 #173a6f;transition:transform .25s cubic-bezier(.16,1,.3,1)}.ds-download:hover{transform:translate(-2px,-2px)}.ds-download strong,.ds-download small{display:block}.ds-download small{font-size:11px;opacity:.78}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A pilha que nunca para",
+    "overview": "O Kwall transforma a lógica de uma rodada de wallpapers em um objeto físico recorrente: fotografias empilhadas percorrem uma órbita, se abrem para provar a ausência de repetição e voltam como editor e chamada final.",
+    "keyCharacteristics": [
+      "Azul de utilitário Windows, papel branco e um único sol amarelo.",
+      "Fotografias sobrepostas com profundidade estrutural.",
+      "Tipografia nativa do Windows e interações reversíveis."
+    ],
+    "rules": [
+      { "name": "The One Sun Rule", "body": "O amarelo marca foco ou ciclo concluído; não vira decoração espalhada.", "section": "colors" },
+      { "name": "Motion explains state", "body": "Toda animação demonstra rodada, enquadramento ou hierarquia e respeita redução de movimento.", "section": "motion" }
+    ],
+    "dos": [
+      "Reusar a pilha como protagonista em estados diferentes.",
+      "Reservar sombras para explicar a ordem física das imagens."
+    ],
+    "donts": [
+      "Transformar a página em um hero genérico de SaaS.",
+      "Espalhar brilho, vidro ou amarelo sem função."
+    ]
+  }
+}
