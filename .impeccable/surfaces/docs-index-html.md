@@ -13,7 +13,7 @@ pt-BR e permitindo leitura completa em inglês. Job: entender, confiar e baixar.
 Action: baixar a release estável mais recente no GitHub. Secondary actions:
 examinar o código, ler a documentação e alternar idioma.
 
-Proof: código MIT, release v1.2.0, 25/25 autotestes, execução local, ausência de
+Proof: código MIT, release v1.2.2, 27/27 autotestes, execução local, ausência de
 conta/anúncios/telemetria e recursos confirmados no README. Não usar métricas de
 CPU, número de usuários ou depoimentos.
 

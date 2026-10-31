@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.1 — em desenvolvimento
+## 1.2.2 — 31/10/2026
 
 ### Corrigido
 
@@ -10,6 +10,8 @@
   partir da rodada atual ao atualizar da versão 1.2.0.
 - A fila pendente da versão anterior é descartada uma única vez e recriada só
   com as imagens ainda não exibidas, sem reiniciar a rodada.
+- A ordem completa da rodada anterior passa a ser persistida. A rodada seguinte
+  não mantém nenhuma imagem na mesma posição nem repete uma transição consecutiva.
 
 ### Verificado
 

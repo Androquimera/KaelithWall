@@ -24,9 +24,9 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Kwall")]
 [assembly: AssemblyProduct("Kwall")]
 [assembly: AssemblyDescription("Trocador leve de papel de parede para Windows")]
-[assembly: AssemblyVersion("1.2.1.0")]
-[assembly: AssemblyFileVersion("1.2.1.0")]
-[assembly: AssemblyInformationalVersion("1.2.1")]
+[assembly: AssemblyVersion("1.2.2.0")]
+[assembly: AssemblyFileVersion("1.2.2.0")]
+[assembly: AssemblyInformationalVersion("1.2.2")]
 
 namespace Kwall
 {
@@ -99,6 +99,7 @@ namespace Kwall
         public readonly List<string> OrdemAleatoria = new List<string>();
         public readonly List<string> ExibidasNaRodada = new List<string>();
         public readonly List<string> HistoricoRecente = new List<string>();
+        public readonly List<string> RodadaAnterior = new List<string>();
         readonly Dictionary<string, PointF> posicoes =
             new Dictionary<string, PointF>(StringComparer.OrdinalIgnoreCase);
         readonly Dictionary<string, PointF> posicoesPorId =
@@ -184,6 +185,14 @@ namespace Kwall
                             }
                             catch { }
                             break;
+                        case "rodada_anterior":
+                            try
+                            {
+                                c.RodadaAnterior.Add(Encoding.UTF8.GetString(
+                                    Convert.FromBase64String(valor)));
+                            }
+                            catch { }
+                            break;
                         case "pasta_recente":
                             try
                             {
@@ -265,6 +274,9 @@ namespace Kwall
                         Encoding.UTF8.GetBytes(arquivo)));
                 foreach (string arquivo in HistoricoRecente)
                     sb.AppendLine("recente=" + Convert.ToBase64String(
+                        Encoding.UTF8.GetBytes(arquivo)));
+                foreach (string arquivo in RodadaAnterior)
+                    sb.AppendLine("rodada_anterior=" + Convert.ToBase64String(
                         Encoding.UTF8.GetBytes(arquivo)));
                 foreach (string pasta in PastasRecentes)
                     sb.AppendLine("pasta_recente=" + Convert.ToBase64String(
@@ -705,6 +717,54 @@ namespace Kwall
             }
         }
 
+        static bool RodadaDiferente(List<string> candidata, List<string> anterior)
+        {
+            if (anterior.Count != candidata.Count || anterior.Count < 2) return true;
+            HashSet<string> transicoes = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < anterior.Count; i++)
+            {
+                if (string.Equals(candidata[i], anterior[i],
+                    StringComparison.OrdinalIgnoreCase)) return false;
+                if (i > 0) transicoes.Add(anterior[i - 1] + "\0" + anterior[i]);
+            }
+            for (int i = 1; i < candidata.Count; i++)
+                if (transicoes.Contains(candidata[i - 1] + "\0" + candidata[i]))
+                    return false;
+            return true;
+        }
+
+        void PrepararNovaRodada(List<string> restantes, string atual,
+            List<string> anterior, List<string> historico)
+        {
+            List<string> candidata = new List<string>();
+            for (int tentativa = 0; tentativa < 256; tentativa++)
+            {
+                Embaralhar(restantes, null);
+                AfastarRecentesDoInicio(restantes, historico);
+                candidata.Clear();
+                if (atual != null) candidata.Add(atual);
+                candidata.AddRange(restantes);
+                if (RodadaDiferente(candidata, anterior)) return;
+            }
+
+            // Fallback deterministico: para colecoes grandes nunca deve ser
+            // necessario, mas impede depender de sorte para cumprir a garantia.
+            List<string> baseReversa = new List<string>(restantes);
+            baseReversa.Reverse();
+            for (int deslocamento = 0; deslocamento < baseReversa.Count; deslocamento++)
+            {
+                restantes.Clear();
+                for (int i = 0; i < baseReversa.Count; i++)
+                    restantes.Add(baseReversa[(i + deslocamento) % baseReversa.Count]);
+                AfastarRecentesDoInicio(restantes, historico);
+                candidata.Clear();
+                if (atual != null) candidata.Add(atual);
+                candidata.AddRange(restantes);
+                if (RodadaDiferente(candidata, anterior)) return;
+            }
+        }
+
         int Sortear(int limite)
         {
             byte[] bytes = new byte[4];
@@ -754,23 +814,36 @@ namespace Kwall
                 HashSet<string> encontrados = new HashSet<string>(
                     achados, StringComparer.OrdinalIgnoreCase);
                 HashSet<string> exibidas = new HashSet<string>(
-                    cfg.ExibidasNaRodada, StringComparer.OrdinalIgnoreCase);
-                exibidas.IntersectWith(encontrados);
+                    StringComparer.OrdinalIgnoreCase);
+                List<string> exibidasOrdenadas = new List<string>();
+                foreach (string p in cfg.ExibidasNaRodada)
+                    if (encontrados.Contains(p) && exibidas.Add(p))
+                        exibidasOrdenadas.Add(p);
 
                 // Versoes antigas nao sabiam o que realmente chegou a tela. Comeca
                 // uma rodada verificavel usando o wallpaper atual como ponto zero.
                 if (!cfg.MemoriaExibicao ||
                     (achados.Count > 0 && exibidas.Count >= achados.Count))
                 {
+                    if (cfg.MemoriaExibicao && exibidas.Count >= achados.Count)
+                    {
+                        cfg.RodadaAnterior.Clear();
+                        cfg.RodadaAnterior.AddRange(exibidasOrdenadas);
+                    }
                     exibidas.Clear();
+                    exibidasOrdenadas.Clear();
                     cfg.OrdemAleatoria.Clear();
                     cfg.MemoriaExibicao = true;
                     novaRodada = true;
-                    if (atual != null && encontrados.Contains(atual)) exibidas.Add(atual);
+                    if (atual != null && encontrados.Contains(atual))
+                    {
+                        exibidas.Add(atual);
+                        exibidasOrdenadas.Add(atual);
+                    }
                 }
 
                 cfg.ExibidasNaRodada.Clear();
-                cfg.ExibidasNaRodada.AddRange(exibidas);
+                cfg.ExibidasNaRodada.AddRange(exibidasOrdenadas);
                 HashSet<string> incluidos = new HashSet<string>(
                     StringComparer.OrdinalIgnoreCase);
                 List<string> preservada = new List<string>();
@@ -781,8 +854,11 @@ namespace Kwall
                 List<string> novos = new List<string>();
                 foreach (string p in achados)
                     if (!exibidas.Contains(p) && incluidos.Add(p)) novos.Add(p);
-                Embaralhar(novos, null);
-                if (novaRodada) AfastarRecentesDoInicio(novos, cfg.HistoricoRecente);
+                if (novaRodada)
+                    PrepararNovaRodada(novos, atual,
+                        cfg.RodadaAnterior, cfg.HistoricoRecente);
+                else
+                    Embaralhar(novos, null);
                 preservada.AddRange(novos);
 
                 cfg.OrdemAleatoria.Clear();
@@ -1209,6 +1285,18 @@ namespace Kwall
                 afastouRecentes = afastouRecentes && !historicoRecente.Contains(ordemComRecentes[i]);
             checar(afastouRecentes,
                    "nova rodada afasta imagens vistas recentemente do inicio");
+
+            List<string> rodadaAnteriorTeste = new List<string>();
+            List<string> restantesTeste = new List<string>();
+            for (int i = 0; i < 20; i++) rodadaAnteriorTeste.Add("foto-" + i);
+            restantesTeste.AddRange(rodadaAnteriorTeste.GetRange(0, 19));
+            PrepararNovaRodada(restantesTeste, "foto-19",
+                rodadaAnteriorTeste, new List<string>());
+            List<string> rodadaNovaTeste = new List<string>();
+            rodadaNovaTeste.Add("foto-19");
+            rodadaNovaTeste.AddRange(restantesTeste);
+            checar(RodadaDiferente(rodadaNovaTeste, rodadaAnteriorTeste),
+                   "nova rodada muda todas as posicoes e transicoes da anterior");
 
             // Uma rodada usa todas as imagens uma vez e sobrevive a uma nova
             // varredura (o equivalente a reiniciar o aplicativo).

@@ -30,7 +30,7 @@
       : 'Animar o logo do Kwall');
     document.querySelector('.logo-mark').setAttribute('alt', english ? 'Kwall logo' : 'Logo do Kwall');
     document.querySelectorAll('.release-label:not([data-remote="1"])').forEach((label) => {
-      label.textContent = english ? 'v1.2.0 · portable EXE' : 'v1.2.0 · EXE portátil';
+      label.textContent = english ? 'v1.2.2 · portable EXE' : 'v1.2.2 · EXE portátil';
     });
     localStorage.setItem('kwall-language', english ? 'en' : 'pt');
   }
@@ -40,7 +40,7 @@
 
   const visual = document.querySelector('.visual-stage');
   const stageMap = { hero: '0', round: '1', frame: '2', trust: '3', download: '3' };
-  const counterMap = { hero: '1 / 4', round: '4 / 4', frame: '✓', trust: 'LOCAL', download: 'v1.2.0' };
+  const counterMap = { hero: '1 / 4', round: '4 / 4', frame: '✓', trust: 'LOCAL', download: 'v1.2.2' };
 
   function activateWithKeyboard(element, callback) {
     element.addEventListener('keydown', (event) => {

@@ -48,8 +48,7 @@ releases públicas do GitHub.
 - Preencher, ajustar, esticar, centralizar e enquadramento manual por imagem.
 - Memória de pastas, suporte a subpastas e orientação EXIF.
 - Código aberto sob licença MIT.
-- A versão pública atual é 1.2.0; o código 1.2.1 possui 26 verificações e aguarda
-  uma próxima release.
+- A versão pública atual é 1.2.2 e possui 27 verificações automatizadas.
 - A interface nativa está em português; localização completa em inglês continua
   uma decisão futura e não deve ser prometida pela vitrine.
 
@@ -63,9 +62,8 @@ transforma o produto em uma marca SaaS genérica.
 ## Evidence on Hand
 
 - Código-fonte público e histórico de releases no GitHub.
-- Release 1.2.0 validada com executável, hash SHA-256 e notas detalhadas; build
-  local 1.2.1 validado com 26 autotestes.
-- Autoteste real com 25 verificações aprovado no build publicado.
+- Release 1.2.2 validada com executável, hash SHA-256 e notas detalhadas.
+- Autoteste real com 27 verificações aprovado no build publicado.
 - `logo.webp`, ícones derivados, README, changelog e licença MIT.
 - Não existem depoimentos, números de usuários ou benchmarks atuais aprovados;
   a vitrine não deve fabricá-los.
